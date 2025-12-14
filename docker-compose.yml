@@ -1,0 +1,111 @@
+version: "3.8"
+
+services:
+    # MySQL Database Service
+    mysql:
+        image: mysql:8.0
+        container_name: auth-mysql
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-MdAshikur123+}
+            MYSQL_DATABASE: ${MYSQL_DATABASE:-authdb}
+        ports:
+            - "3306:3306"
+        volumes:
+            - mysql_data:/var/lib/mysql
+            - ./docker/mysql/init:/docker-entrypoint-initdb.d
+        networks:
+            - auth-network
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "mysqladmin",
+                    "ping",
+                    "-h",
+                    "localhost",
+                    "-u",
+                    "root",
+                    "-p${MYSQL_ROOT_PASSWORD:-MdAshikur123+}",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 30s
+
+    # Spring Boot Application Service (Optional - uncomment to use)
+    app:
+        build:
+            context: ./server
+            dockerfile: Dockerfile
+        container_name: auth-app
+        restart: unless-stopped
+        depends_on:
+            mysql:
+                condition: service_healthy
+        environment:
+            # Spring Profile
+            SPRING_PROFILES_ACTIVE: docker
+            # Database Configuration
+            DB_HOST: mysql
+            DB_PORT: 3306
+            DB_NAME: ${MYSQL_DATABASE:-authdb}
+            DB_USERNAME: root
+            DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-MdAshikur123+}
+            # JWT Configuration
+            JWT_SECRET: ${JWT_SECRET:-ZG9ja2VyLXNlY3JldC1rZXktdGhhdC1pcy1hdC1sZWFzdC0yNTYtYml0cy1sb25nLWZvci1IUzI1Ni1hbGdvcml0aG0tYW5kLXNob3VsZC1iZS1jaGFuZ2Vk}
+            # OAuth2 Configuration
+            # OAuth2 Configuration
+            GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+            GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+            OAUTH2_REDIRECT_URI: ${OAUTH2_REDIRECT_URI}
+        ports:
+            - "8080:8080"
+        networks:
+            - auth-network
+
+
+    # Frontend Service
+    frontend:
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+        container_name: auth-frontend
+        restart: unless-stopped
+        depends_on:
+            app:
+                condition: service_started
+        environment:
+            NODE_ENV: production
+            BACKEND_URL: http://app:8080
+        ports:
+            - "3000:3000"
+        networks:
+            - auth-network
+
+
+    # phpMyAdmin (Optional - for database management)
+    phpmyadmin:
+        image: phpmyadmin:latest
+        container_name: auth-phpmyadmin
+        restart: unless-stopped
+        depends_on:
+            - mysql
+        environment:
+            PMA_HOST: mysql
+            PMA_PORT: 3306
+            PMA_USER: root
+            PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-MdAshikur123+}
+        ports:
+            - "8081:80"
+        networks:
+            - auth-network
+
+
+volumes:
+    mysql_data:
+        driver: local
+
+networks:
+    auth-network:
+        driver: bridge
