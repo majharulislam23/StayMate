@@ -3,10 +3,11 @@ package com.webapp.domain.messaging.service;
 import com.webapp.domain.messaging.dto.*;
 import com.webapp.domain.messaging.entity.Conversation;
 import com.webapp.domain.messaging.entity.Message;
-import com.webapp.domain.messaging.entity.Message.MessageType;
+import com.webapp.domain.messaging.enums.MessageType;
 import com.webapp.domain.messaging.repository.ConversationRepository;
 import com.webapp.domain.messaging.repository.MessageRepository;
 import com.webapp.domain.notification.entity.Notification;
+import com.webapp.domain.notification.enums.NotificationType;
 import com.webapp.domain.notification.repository.NotificationRepository;
 import com.webapp.domain.user.entity.User;
 import com.webapp.domain.user.repository.UserRepository;
@@ -46,14 +47,9 @@ public class MessageServiceImpl implements MessageService {
                 Page<Conversation> conversationPage;
 
                 if (search != null && !search.trim().isEmpty()) {
-                        conversationPage = conversationRepository.searchConversations(
-                                        userId,
-                                        search.trim(),
-                                        pageable);
+                        conversationPage = conversationRepository.searchConversations(userId, search.trim(), pageable);
                 } else {
-                        conversationPage = conversationRepository.findByUserId(
-                                        userId,
-                                        pageable);
+                        conversationPage = conversationRepository.findByUserId(userId, pageable);
                 }
 
                 List<ConversationResponse> conversations = conversationPage
@@ -62,8 +58,7 @@ public class MessageServiceImpl implements MessageService {
                                 .map(c -> mapToConversationResponse(c, userId))
                                 .collect(Collectors.toList());
 
-                int totalUnreadCount = conversationRepository.getTotalUnreadCount(
-                                userId);
+                int totalUnreadCount = conversationRepository.getTotalUnreadCount(userId);
 
                 return ConversationListResponse.builder()
                                 .conversations(conversations)
@@ -79,9 +74,9 @@ public class MessageServiceImpl implements MessageService {
         public ConversationResponse getConversation(
                         Long conversationId,
                         Long userId) {
-                Conversation conversation = conversationRepository
-                                .findByIdAndUserId(conversationId, userId)
+                Conversation conversation = conversationRepository.findByIdAndUserId(conversationId, userId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Conversation not found"));
+
                 return mapToConversationResponse(conversation, userId);
         }
 
@@ -96,9 +91,7 @@ public class MessageServiceImpl implements MessageService {
                                 .orElseThrow(() -> new ResourceNotFoundException("Conversation not found"));
 
                 Pageable pageable = PageRequest.of(page, size);
-                Page<Message> messagePage = messageRepository.findByConversationIdAndUserId(
-                                conversationId,
-                                userId,
+                Page<Message> messagePage = messageRepository.findByConversationIdAndUserId(conversationId, userId,
                                 pageable);
 
                 List<MessageResponse> messages = messagePage
@@ -121,9 +114,7 @@ public class MessageServiceImpl implements MessageService {
         }
 
         @Transactional
-        public ConversationResponse createConversation(
-                        Long userId,
-                        CreateConversationRequest request) {
+        public ConversationResponse createConversation(Long userId, CreateConversationRequest request) {
                 if (userId == null) {
                         throw new BadRequestException("User ID is required");
                 }
@@ -309,17 +300,17 @@ public class MessageServiceImpl implements MessageService {
                 conversationRepository.save(conversation);
 
                 // Create notification for recipient
-                createMessageNotification(
-                                recipient,
-                                sender,
-                                conversation.getId(),
-                                content);
+                // createMessageNotification(
+                // recipient,
+                // sender,
+                // conversation.getId(),
+                // content);
 
                 // Broadcast message to recipient via WebSocket
                 try {
                         MessageResponse response = mapToMessageResponse(message, recipient.getId());
                         messagingTemplate.convertAndSendToUser(
-                                        String.valueOf(recipient.getId()),
+                                        recipient.getEmail(),
                                         "/queue/messages",
                                         response);
                 } catch (Exception e) {
@@ -354,7 +345,7 @@ public class MessageServiceImpl implements MessageService {
 
                         Notification notification = Notification.builder()
                                         .user(recipient)
-                                        .type(Notification.NotificationType.NEW_MESSAGE)
+                                        .type(NotificationType.NEW_MESSAGE)
                                         .title("New message from " + senderName)
                                         .message(messagePreview)
                                         .actionUrl("/messages?conversation=" + conversationId)

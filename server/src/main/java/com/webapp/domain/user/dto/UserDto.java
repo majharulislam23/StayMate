@@ -1,8 +1,10 @@
 package com.webapp.domain.user.dto;
 
-import com.webapp.domain.user.entity.AuthProvider;
 import java.time.LocalDateTime;
 import java.util.Set;
+
+import com.webapp.domain.user.enums.AuthProvider;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -37,6 +39,9 @@ public class UserDto {
     private LocalDateTime lastLoginAt;
     private boolean enabled;
 
+    private String accountStatus;
+    private LocalDateTime deletionScheduledAt;
+
     public boolean isAdmin() {
         return roles != null && roles.contains("ROLE_ADMIN");
     }
@@ -46,12 +51,10 @@ public class UserDto {
     }
 
     public boolean isRegularUser() {
-        return (
-            roles != null &&
-            roles.contains("ROLE_USER") &&
-            !isAdmin() &&
-            !isHouseOwner()
-        );
+        return (roles != null &&
+                roles.contains("ROLE_USER") &&
+                !isAdmin() &&
+                !isHouseOwner());
     }
 
     public String getPrimaryRole() {

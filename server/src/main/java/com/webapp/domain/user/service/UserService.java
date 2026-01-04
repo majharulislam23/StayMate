@@ -1,83 +1,99 @@
 package com.webapp.domain.user.service;
 
-import com.webapp.auth.dto.request.RegisterRequest;
-import com.webapp.domain.user.entity.AuthProvider;
-import com.webapp.domain.user.entity.RoleName;
-import com.webapp.domain.user.entity.User;
 import java.util.List;
+
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import com.webapp.auth.dto.request.RegisterRequest;
+import com.webapp.domain.user.entity.User;
+import com.webapp.domain.user.enums.AuthProvider;
+import com.webapp.domain.user.enums.RoleName;
+
 public interface UserService extends UserDetailsService {
-    @Override
-    UserDetails loadUserByUsername(String email)
-        throws UsernameNotFoundException;
+        @Override
+        UserDetails loadUserByUsername(String email)
+                        throws UsernameNotFoundException;
 
-    UserDetails loadUserById(Long id);
+        UserDetails loadUserById(Long id);
 
-    User registerUser(RegisterRequest registerRequest);
+        User registerUser(RegisterRequest registerRequest);
 
-    User createOrUpdateOAuth2User(
-        String email,
-        String firstName,
-        String lastName,
-        String profilePictureUrl,
-        String providerId,
-        AuthProvider provider
-    );
+        User createOrUpdateOAuth2User(
+                        String email,
+                        String firstName,
+                        String lastName,
+                        String profilePictureUrl,
+                        String providerId,
+                        AuthProvider provider);
 
-    User selectRole(Long userId, String role);
+        User selectRole(Long userId, String role);
 
-    User getUserById(Long id);
+        User getUserById(Long id);
 
-    User getUserByEmail(String email);
+        User getUserByEmail(String email);
 
-    List<User> getAllUsers();
+        org.springframework.data.domain.Page<User> getAllUsers(
+                        @org.springframework.lang.NonNull org.springframework.data.domain.Pageable pageable);
 
-    List<User> getUsersByRole(RoleName role);
+        org.springframework.data.domain.Page<User> searchUsers(String query,
+                        @org.springframework.lang.NonNull org.springframework.data.domain.Pageable pageable);
 
-    List<User> getHouseOwners();
+        User createUser(com.webapp.domain.user.dto.UserCreateDto userCreateDto);
 
-    List<User> getRegularUsers();
+        User updateUser(Long id, com.webapp.domain.user.dto.UserUpdateDto userUpdateDto);
 
-    List<User> getAdmins();
+        List<User> getAllUsers();
 
-    void updateLastLogin(Long userId);
+        List<User> getUsersByRole(RoleName role);
 
-    User updateUserProfile(
-        Long userId,
-        String firstName,
-        String lastName,
-        String phoneNumber,
-        String bio,
-        String address,
-        String city,
-        String profilePictureUrl
-    );
+        List<User> getHouseOwners();
 
-    User enableUser(Long userId);
+        List<User> getRegularUsers();
 
-    User disableUser(Long userId);
+        List<User> getAdmins();
 
-    void deleteUser(Long userId);
+        void updateLastLogin(Long userId);
 
-    boolean existsByEmail(String email);
+        User updateUserProfile(
+                        Long userId,
+                        String firstName,
+                        String lastName,
+                        String phoneNumber,
+                        String bio,
+                        String address,
+                        String city,
+                        String profilePictureUrl);
 
-    long countUsers();
+        User enableUser(Long userId);
 
-    long countUsersByRole(RoleName role);
+        User disableUser(Long userId);
 
-    long countHouseOwners();
+        void deleteUser(Long userId);
 
-    long countRegularUsers();
+        boolean existsByEmail(String email);
 
-    long countAdmins();
+        long countUsers();
 
-    // Role management methods (moved from AuthService)
-    User promoteToHouseOwner(Long userId);
+        long countUsersByRole(RoleName role);
 
-    User promoteToAdmin(Long userId);
+        long countHouseOwners();
 
-    User removeRole(Long userId, RoleName role);
+        long countRegularUsers();
+
+        long countAdmins();
+
+        long countActiveUsers();
+
+        long countUnverifiedUsers();
+
+        // Role management methods (moved from AuthService)
+        User promoteToHouseOwner(Long userId);
+
+        User promoteToAdmin(Long userId);
+
+        User removeRole(Long userId, RoleName role);
+
+        User updateAccountStatus(Long userId, com.webapp.domain.user.enums.AccountStatus status);
 }

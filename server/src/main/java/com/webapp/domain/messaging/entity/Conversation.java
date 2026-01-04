@@ -2,9 +2,11 @@ package com.webapp.domain.messaging.entity;
 
 import com.webapp.domain.user.entity.User;
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -84,9 +86,9 @@ public class Conversation {
         updatedAt = LocalDateTime.now();
     }
 
+    //
     public boolean isParticipant(Long userId) {
-        return (participantOne != null && participantOne.getId().equals(userId)) ||
-               (participantTwo != null && participantTwo.getId().equals(userId));
+        return (participantOne != null && participantOne.getId().equals(userId)) || (participantTwo != null && participantTwo.getId().equals(userId));
     }
 
     public User getOtherParticipant(Long userId) {
@@ -137,7 +139,7 @@ public class Conversation {
     public void updateLastMessage(String preview) {
         this.lastMessageAt = LocalDateTime.now();
         this.lastMessagePreview = preview != null && preview.length() > 255
-            ? preview.substring(0, 252) + "..."
-            : preview;
+                ? preview.substring(0, 252) + "..."
+                : preview;
     }
 }

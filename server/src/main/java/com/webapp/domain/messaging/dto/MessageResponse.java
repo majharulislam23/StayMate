@@ -1,6 +1,6 @@
 package com.webapp.domain.messaging.dto;
 
-import com.webapp.domain.messaging.entity.Message.MessageType;
+import com.webapp.domain.messaging.enums.MessageType;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
