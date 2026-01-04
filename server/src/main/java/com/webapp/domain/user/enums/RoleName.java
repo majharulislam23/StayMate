@@ -1,4 +1,4 @@
-package com.webapp.domain.user.entity;
+package com.webapp.domain.user.enums;
 
 public enum RoleName {
     ROLE_USER,

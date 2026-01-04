@@ -1,9 +1,26 @@
 package com.webapp.domain.user.entity;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+
+import com.webapp.domain.user.enums.AuthProvider;
+import com.webapp.domain.user.enums.RoleName;
+
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -49,29 +66,28 @@ public class User {
     private String city;
 
     @Column(name = "email_verified")
-    private boolean emailVerified;
+    @Builder.Default
+    private Boolean emailVerified = false;
 
     @Column(name = "phone_verified")
-    private boolean phoneVerified;
+    @Builder.Default
+    private Boolean phoneVerified = false;
 
     @Column(name = "role_selected")
     @Builder.Default
     private boolean roleSelected = false;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "auth_provider", nullable = false)
+    @Column(name = "auth_provider", nullable = false, columnDefinition = "varchar(255)")
     private AuthProvider authProvider;
 
     @Column(name = "provider_id")
     private String providerId;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id")
-    )
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", length = 50)
+    @Column(name = "role", columnDefinition = "varchar(50)")
     @Builder.Default
     private Set<RoleName> roles = new HashSet<>();
 
@@ -98,6 +114,23 @@ public class User {
         }
     }
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", nullable = false, columnDefinition = "varchar(255)")
+    @Builder.Default
+    private com.webapp.domain.user.enums.AccountStatus accountStatus = com.webapp.domain.user.enums.AccountStatus.ACTIVE;
+
+    @Column(name = "deletion_requested_at")
+    private LocalDateTime deletionRequestedAt;
+
+    @Column(name = "deletion_scheduled_at")
+    private LocalDateTime deletionScheduledAt;
+
+    @Column(name = "deleted_by")
+    private Long deletedBy;
+
+    @Column(name = "deletion_reason")
+    private String deletionReason;
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
@@ -107,11 +140,9 @@ public class User {
         if (firstName == null && lastName == null) {
             return null;
         }
-        return (
-            (firstName != null ? firstName : "") +
-            " " +
-            (lastName != null ? lastName : "")
-        ).trim();
+        return ((firstName != null ? firstName : "") +
+                " " +
+                (lastName != null ? lastName : "")).trim();
     }
 
     public boolean isAdmin() {
@@ -123,12 +154,20 @@ public class User {
     }
 
     public boolean isRegularUser() {
-        return (
-            roles.contains(RoleName.ROLE_USER) && !isAdmin() && !isHouseOwner()
-        );
+        return (roles.contains(RoleName.ROLE_USER) && !isAdmin() && !isHouseOwner());
     }
 
     public boolean needsRoleSelection() {
         return !roleSelected && authProvider != AuthProvider.LOCAL;
+    }
+
+    // Helper methods for boolean wrappers to maintain compatibility and handle
+    // nulls
+    public boolean isEmailVerified() {
+        return Boolean.TRUE.equals(emailVerified);
+    }
+
+    public boolean isPhoneVerified() {
+        return Boolean.TRUE.equals(phoneVerified);
     }
 }

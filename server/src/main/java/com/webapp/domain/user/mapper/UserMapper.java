@@ -1,13 +1,13 @@
 package com.webapp.domain.user.mapper;
 
-import com.webapp.domain.user.dto.UserDto;
-import com.webapp.domain.user.entity.RoleName;
-import com.webapp.domain.user.entity.User;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
+
+import com.webapp.domain.user.dto.UserDto;
+import com.webapp.domain.user.entity.User;
+import com.webapp.domain.user.enums.RoleName;
 
 @Component
 public class UserMapper {
@@ -35,15 +35,16 @@ public class UserMapper {
                 .roles(
                         user.getRoles() != null
                                 ? user
-                                .getRoles()
-                                .stream()
-                                .map(RoleName::name)
-                                .collect(Collectors.toSet())
-                                : null
-                )
+                                        .getRoles()
+                                        .stream()
+                                        .map(RoleName::name)
+                                        .collect(Collectors.toSet())
+                                : null)
                 .createdAt(user.getCreatedAt())
                 .lastLoginAt(user.getLastLoginAt())
                 .enabled(user.isEnabled())
+                .accountStatus(user.getAccountStatus() != null ? user.getAccountStatus().name() : "ACTIVE")
+                .deletionScheduledAt(user.getDeletionScheduledAt())
                 .build();
     }
 

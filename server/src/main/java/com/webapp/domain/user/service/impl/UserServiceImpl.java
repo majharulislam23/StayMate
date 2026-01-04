@@ -1,55 +1,69 @@
 package com.webapp.domain.user.service.impl;
 
-import com.webapp.auth.dto.request.RegisterRequest;
-import com.webapp.auth.exception.BadRequestException;
-import com.webapp.auth.exception.ResourceNotFoundException;
-import com.webapp.auth.exception.UserAlreadyExistsException;
-import com.webapp.auth.security.UserPrincipal;
-import com.webapp.domain.user.entity.AuthProvider;
-import com.webapp.domain.user.entity.RoleName;
-import com.webapp.domain.user.entity.User;
-import com.webapp.domain.user.repository.UserRepository;
-import com.webapp.domain.user.service.UserService;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
+
 import org.springframework.context.annotation.Primary;
+import org.springframework.lang.NonNull;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.webapp.auth.dto.request.RegisterRequest;
+import com.webapp.auth.exception.BadRequestException;
+import com.webapp.auth.exception.ResourceNotFoundException;
+import com.webapp.auth.exception.UserAlreadyExistsException;
+import com.webapp.auth.security.UserPrincipal;
+import com.webapp.domain.application.repository.ApplicationRepository;
+import com.webapp.domain.booking.repository.BookingRepository;
+import com.webapp.domain.match.repository.MatchRepository;
+import com.webapp.domain.messaging.repository.ConversationRepository;
+import com.webapp.domain.notification.repository.NotificationRepository;
+import com.webapp.domain.user.dto.UserCreateDto;
+import com.webapp.domain.user.entity.User;
+import com.webapp.domain.user.enums.AuthProvider;
+import com.webapp.domain.user.enums.RoleName;
+import com.webapp.domain.user.repository.UserRepository;
+import com.webapp.domain.user.service.UserService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 @Service
 @Primary
+@RequiredArgsConstructor
+@Transactional
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
+    private final ApplicationRepository applicationRepository;
+    private final BookingRepository bookingRepository;
+    private final MatchRepository matchRepository;
+    private final ConversationRepository conversationRepository;
     private final PasswordEncoder passwordEncoder;
-
-    public UserServiceImpl(
-        UserRepository userRepository,
-        @Lazy PasswordEncoder passwordEncoder
-    ) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email)
-        throws UsernameNotFoundException {
+            throws UsernameNotFoundException {
         User user = userRepository
-            .findByEmail(email)
-            .orElseThrow(() ->
-                new UsernameNotFoundException(
-                    "User not found with email: " + email
-                )
-            );
+                .findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "User not found with email: " + email));
+
+        // Allow PENDING_DELETION users to login so they can cancel
+        // if (user.getAccountStatus() ==
+        // com.webapp.domain.user.enums.AccountStatus.PENDING_DELETION) {
+        // throw new org.springframework.security.authentication.DisabledException(
+        // "Your account is scheduled for deletion on " +
+        // user.getDeletionScheduledAt());
+        // }
 
         return UserPrincipal.create(user);
     }
@@ -58,8 +72,8 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public UserDetails loadUserById(Long id) {
         User user = userRepository
-            .findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+                .findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
 
         return UserPrincipal.create(user);
     }
@@ -69,53 +83,47 @@ public class UserServiceImpl implements UserService {
     public User registerUser(RegisterRequest registerRequest) {
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
             throw new UserAlreadyExistsException(
-                "Email address is already registered"
-            );
+                    "Email address is already registered");
         }
 
         // Determine role based on request
         Set<RoleName> roles = new HashSet<>();
         String requestedRole = registerRequest.getRole();
 
-        if (
-            requestedRole != null &&
-            requestedRole.equalsIgnoreCase("HOUSE_OWNER")
-        ) {
+        if (requestedRole != null &&
+                requestedRole.equalsIgnoreCase("HOUSE_OWNER")) {
             roles.add(RoleName.ROLE_HOUSE_OWNER);
             log.info(
-                "Registering user as HOUSE_OWNER: {}",
-                registerRequest.getEmail()
-            );
+                    "Registering user as HOUSE_OWNER: {}",
+                    registerRequest.getEmail());
         } else {
             roles.add(RoleName.ROLE_USER);
             log.info(
-                "Registering user as USER: {}",
-                registerRequest.getEmail()
-            );
+                    "Registering user as USER: {}",
+                    registerRequest.getEmail());
         }
 
         User user = User.builder()
-            .email(registerRequest.getEmail())
-            .password(passwordEncoder.encode(registerRequest.getPassword()))
-            .firstName(registerRequest.getFirstName())
-            .lastName(registerRequest.getLastName())
-            .phoneNumber(registerRequest.getPhoneNumber())
-            .bio(registerRequest.getBio())
-            .address(registerRequest.getAddress())
-            .city(registerRequest.getCity())
-            .authProvider(AuthProvider.LOCAL)
-            .emailVerified(false)
-            .phoneVerified(false)
-            .enabled(true)
-            .roles(roles)
-            .build();
+                .email(registerRequest.getEmail())
+                .password(passwordEncoder.encode(registerRequest.getPassword()))
+                .firstName(registerRequest.getFirstName())
+                .lastName(registerRequest.getLastName())
+                .phoneNumber(registerRequest.getPhoneNumber())
+                .bio(registerRequest.getBio())
+                .address(registerRequest.getAddress())
+                .city(registerRequest.getCity())
+                .authProvider(AuthProvider.LOCAL)
+                .emailVerified(false)
+                .phoneVerified(false)
+                .enabled(true)
+                .roles(roles)
+                .build();
 
         User savedUser = userRepository.save(user);
         log.info(
-            "New user registered: {} with role: {}",
-            savedUser.getEmail(),
-            roles
-        );
+                "New user registered: {} with role: {}",
+                savedUser.getEmail(),
+                roles);
 
         return savedUser;
     }
@@ -123,48 +131,46 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User createOrUpdateOAuth2User(
-        String email,
-        String firstName,
-        String lastName,
-        String profilePictureUrl,
-        String providerId,
-        AuthProvider provider
-    ) {
+            String email,
+            String firstName,
+            String lastName,
+            String profilePictureUrl,
+            String providerId,
+            AuthProvider provider) {
         return userRepository
-            .findByEmail(email)
-            .map(existingUser -> {
-                existingUser.setFirstName(firstName);
-                existingUser.setLastName(lastName);
-                existingUser.setProfilePictureUrl(profilePictureUrl);
-                existingUser.setLastLoginAt(LocalDateTime.now());
-                return userRepository.save(existingUser);
-            })
-            .orElseGet(() -> {
-                Set<RoleName> roles = new HashSet<>();
-                roles.add(RoleName.ROLE_USER);
+                .findByEmail(email)
+                .map(existingUser -> {
+                    existingUser.setFirstName(firstName);
+                    existingUser.setLastName(lastName);
+                    existingUser.setProfilePictureUrl(profilePictureUrl);
+                    existingUser.setLastLoginAt(LocalDateTime.now());
+                    return userRepository.save(existingUser);
+                })
+                .orElseGet(() -> {
+                    Set<RoleName> roles = new HashSet<>();
+                    roles.add(RoleName.ROLE_USER);
 
-                User newUser = User.builder()
-                    .email(email)
-                    .firstName(firstName)
-                    .lastName(lastName)
-                    .profilePictureUrl(profilePictureUrl)
-                    .authProvider(provider)
-                    .providerId(providerId)
-                    .emailVerified(true)
-                    .phoneVerified(false)
-                    .enabled(true)
-                    .roleSelected(false) // New OAuth users need to select their role
-                    .roles(roles)
-                    .build();
+                    User newUser = User.builder()
+                            .email(email)
+                            .firstName(firstName)
+                            .lastName(lastName)
+                            .profilePictureUrl(profilePictureUrl)
+                            .authProvider(provider)
+                            .providerId(providerId)
+                            .emailVerified(true)
+                            .phoneVerified(false)
+                            .enabled(true)
+                            .roleSelected(false) // New OAuth users need to select their role
+                            .roles(roles)
+                            .build();
 
-                User savedUser = userRepository.save(newUser);
-                log.info(
-                    "New OAuth2 user registered: {} via {} (role selection pending)",
-                    email,
-                    provider
-                );
-                return savedUser;
-            });
+                    User savedUser = userRepository.save(newUser);
+                    log.info(
+                            "New OAuth2 user registered: {} via {} (role selection pending)",
+                            email,
+                            provider);
+                    return savedUser;
+                });
     }
 
     @Override
@@ -174,16 +180,13 @@ public class UserServiceImpl implements UserService {
 
         if (user.isRoleSelected()) {
             throw new IllegalStateException(
-                "Role has already been selected for this user"
-            );
+                    "Role has already been selected for this user");
         }
 
         // Clear existing roles and set the new one
         Set<RoleName> roles = new HashSet<>();
-        if (
-            "HOUSE_OWNER".equalsIgnoreCase(role) ||
-            "ROLE_HOUSE_OWNER".equalsIgnoreCase(role)
-        ) {
+        if ("HOUSE_OWNER".equalsIgnoreCase(role) ||
+                "ROLE_HOUSE_OWNER".equalsIgnoreCase(role)) {
             roles.add(RoleName.ROLE_HOUSE_OWNER);
             log.info("User {} selected role: HOUSE_OWNER", user.getEmail());
         } else {
@@ -201,24 +204,90 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public User getUserById(Long id) {
         return userRepository
-            .findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+                .findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
     }
 
     @Override
     @Transactional(readOnly = true)
     public User getUserByEmail(String email) {
         return userRepository
-            .findByEmail(email)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("User", "email", email)
-            );
+                .findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<User> getAllUsers(
+            @NonNull org.springframework.data.domain.Pageable pageable) {
+        return userRepository.findAll(pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<User> searchUsers(String query,
+            @NonNull org.springframework.data.domain.Pageable pageable) {
+        return userRepository.searchUsers(query, pageable);
+    }
+
+    @Override
+    @Transactional
+    public User createUser(UserCreateDto userCreateDto) {
+        if (userRepository.existsByEmail(userCreateDto.getEmail())) {
+            throw new UserAlreadyExistsException("Email address is already registered");
+        }
+
+        User user = User.builder()
+                .email(userCreateDto.getEmail())
+                .password(passwordEncoder.encode(userCreateDto.getPassword())) // Admin sets password
+                .firstName(userCreateDto.getFirstName())
+                .lastName(userCreateDto.getLastName())
+                .authProvider(AuthProvider.LOCAL)
+                .emailVerified(true) // Admin created users are verified
+                .phoneVerified(false)
+                .enabled(userCreateDto.isEnabled())
+                .roles(userCreateDto.getRoles() != null && !userCreateDto.getRoles().isEmpty()
+                        ? userCreateDto.getRoles()
+                        : Set.of(RoleName.ROLE_USER))
+                .roleSelected(true)
+                .build();
+
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User updateUser(Long id, com.webapp.domain.user.dto.UserUpdateDto userUpdateDto) {
+        User user = getUserById(id);
+
+        if (userUpdateDto.getFirstName() != null)
+            user.setFirstName(userUpdateDto.getFirstName());
+        if (userUpdateDto.getLastName() != null)
+            user.setLastName(userUpdateDto.getLastName());
+        if (userUpdateDto.getPhoneNumber() != null)
+            user.setPhoneNumber(userUpdateDto.getPhoneNumber());
+        if (userUpdateDto.getBio() != null)
+            user.setBio(userUpdateDto.getBio());
+        if (userUpdateDto.getAddress() != null)
+            user.setAddress(userUpdateDto.getAddress());
+        if (userUpdateDto.getCity() != null)
+            user.setCity(userUpdateDto.getCity());
+
+        if (userUpdateDto.getRoles() != null && !userUpdateDto.getRoles().isEmpty()) {
+            user.setRoles(userUpdateDto.getRoles());
+        }
+
+        if (userUpdateDto.getEnabled() != null) {
+            user.setEnabled(userUpdateDto.getEnabled());
+        }
+
+        return userRepository.save(user);
     }
 
     @Override
@@ -256,15 +325,14 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User updateUserProfile(
-        Long userId,
-        String firstName,
-        String lastName,
-        String phoneNumber,
-        String bio,
-        String address,
-        String city,
-        String profilePictureUrl
-    ) {
+            Long userId,
+            String firstName,
+            String lastName,
+            String phoneNumber,
+            String bio,
+            String address,
+            String city,
+            String profilePictureUrl) {
         User user = getUserById(userId);
 
         if (firstName != null) {
@@ -319,8 +387,38 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deleteUser(Long userId) {
         User user = getUserById(userId);
+        log.info("Starting deletion for user: {}", user.getEmail());
+
+        // 1. Delete all notifications for the user
+        // Using deleteAll to ensure potential cascades (though Notification has none)
+        List<com.webapp.domain.notification.entity.Notification> notifications = notificationRepository
+                .findAllByUserId(userId);
+        notificationRepository.deleteAll(notifications);
+
+        // 2. Delete all applications involving the user
+        List<com.webapp.domain.application.entity.Application> applications = applicationRepository
+                .findAllBySenderIdOrReceiverId(userId, userId);
+        applicationRepository.deleteAll(applications);
+
+        // 3. Delete all bookings involving the user
+        List<com.webapp.domain.booking.entity.Booking> bookings = bookingRepository
+                .findAllByTenantIdOrLandlordId(userId, userId);
+        bookingRepository.deleteAll(bookings);
+
+        // 4. Delete all matches involving the user
+        List<com.webapp.domain.match.entity.Match> matches = matchRepository.findAllByUserId(userId);
+        matchRepository.deleteAll(matches);
+
+        // 5. Delete all conversations (and cascaded messages) involving the user
+        // This is CRITICAL: Fetching entities and using deleteAll triggers
+        // CascadeType.ALL on messages
+        List<com.webapp.domain.messaging.entity.Conversation> conversations = conversationRepository
+                .findAllByUserId(userId);
+        conversationRepository.deleteAll(conversations);
+
+        // 6. Finally delete the user
         userRepository.delete(user);
-        log.info("User deleted: {}", user.getEmail());
+        log.info("User deleted successfully: {}", user.getEmail());
     }
 
     @Override
@@ -353,16 +451,25 @@ public class UserServiceImpl implements UserService {
         return countUsersByRole(RoleName.ROLE_ADMIN);
     }
 
-    // ==================== Role Management Methods (moved from AuthService) ====================
+    @Override
+    public long countActiveUsers() {
+        return userRepository.countByEnabledTrue();
+    }
+
+    @Override
+    public long countUnverifiedUsers() {
+        return userRepository.countByEmailVerifiedFalse();
+    }
+
+    // ==================== Role Management Methods (moved from AuthService)
+    // ====================
 
     @Override
     @Transactional
     public User promoteToHouseOwner(Long userId) {
         User user = userRepository
-            .findById(userId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("User", "id", userId)
-            );
+                .findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         if (user.getRoles().contains(RoleName.ROLE_HOUSE_OWNER)) {
             throw new BadRequestException("User is already a house owner");
@@ -379,10 +486,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public User promoteToAdmin(Long userId) {
         User user = userRepository
-            .findById(userId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("User", "id", userId)
-            );
+                .findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         if (user.getRoles().contains(RoleName.ROLE_ADMIN)) {
             throw new BadRequestException("User is already an admin");
@@ -399,10 +504,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public User removeRole(Long userId, RoleName role) {
         User user = userRepository
-            .findById(userId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("User", "id", userId)
-            );
+                .findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         if (!user.getRoles().contains(role)) {
             throw new BadRequestException("User does not have this role");
@@ -411,8 +514,7 @@ public class UserServiceImpl implements UserService {
         // Ensure user always has at least ROLE_USER
         if (role == RoleName.ROLE_USER && user.getRoles().size() == 1) {
             throw new BadRequestException(
-                "Cannot remove the only role from user"
-            );
+                    "Cannot remove the only role from user");
         }
 
         user.getRoles().remove(role);
@@ -426,5 +528,24 @@ public class UserServiceImpl implements UserService {
         log.info("Role {} removed from user {}", role, user.getEmail());
 
         return updatedUser;
+    }
+
+    @Override
+    @Transactional
+    public User updateAccountStatus(Long userId, com.webapp.domain.user.enums.AccountStatus status) {
+        User user = getUserById(userId);
+        user.setAccountStatus(status);
+
+        // If banned or suspended, also disable logic if needed, but keeping separate is
+        // fine too.
+        // Usually BANNED implies disabled access.
+        if (status == com.webapp.domain.user.enums.AccountStatus.BANNED ||
+                status == com.webapp.domain.user.enums.AccountStatus.SUSPENDED) {
+            user.setEnabled(false);
+        } else if (status == com.webapp.domain.user.enums.AccountStatus.ACTIVE) {
+            user.setEnabled(true);
+        }
+
+        return userRepository.save(user);
     }
 }
