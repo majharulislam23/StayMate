@@ -12,13 +12,13 @@ interface AdminDashboardProps {
 
 export function AdminDashboard({ stats, isDark }: AdminDashboardProps) {
 
-  // Mock data for occupancy chart if not provided
-  const occupancyData = stats.occupancyAnalytics || [
-    { name: 'Downtown', occupancy: 85 },
-    { name: 'Uptown', occupancy: 65 },
-    { name: 'Campus A', occupancy: 92 },
-    { name: 'Campus B', occupancy: 45 },
-    { name: 'Suburbs', occupancy: 30 },
+  // Use locationOccupancyStats (real) or fallback to mock
+  const occupancyData = stats.locationOccupancyStats || [
+    { name: 'Downtown', occupied: 85 },
+    { name: 'Uptown', occupied: 65 },
+    { name: 'Campus A', occupied: 92 },
+    { name: 'Campus B', occupied: 45 },
+    { name: 'Suburbs', occupied: 30 },
   ]
 
   const cards = [
@@ -62,14 +62,14 @@ export function AdminDashboard({ stats, isDark }: AdminDashboardProps) {
             } backdrop-blur-xl transition-all duration-300 hover:shadow-lg`}>
             <div className="flex justify-between items-start">
               <div className={`p-3 rounded-xl ${card.color === 'blue' ? 'bg-blue-500/10 text-blue-500' :
-                  card.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-500' :
-                    card.color === 'purple' ? 'bg-purple-500/10 text-purple-500' :
-                      'bg-red-500/10 text-red-500'
+                card.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-500' :
+                  card.color === 'purple' ? 'bg-purple-500/10 text-purple-500' :
+                    'bg-red-500/10 text-red-500'
                 }`}>
                 <card.icon className="w-6 h-6" />
               </div>
               <span className={`text-xs font-medium px-2 py-1 rounded-full ${card.color === 'red' ? 'bg-red-500/10 text-red-500' :
-                  isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'
+                isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'
                 }`}>
                 {card.trend}
               </span>
@@ -127,7 +127,7 @@ export function AdminDashboard({ stats, isDark }: AdminDashboardProps) {
                   }}
                 />
                 <Bar
-                  dataKey="occupancy"
+                  dataKey="occupied"
                   fill="#8B5CF6"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={50}

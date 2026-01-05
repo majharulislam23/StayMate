@@ -198,17 +198,17 @@ export default function Sidebar() {
                     items: [
                         {
                             name: "Profile",
-                            href: "/dashboard/profile",
+                            href: "/profile",
                             icon: <User className="w-5 h-5" />,
                         },
                         {
                             name: "Verification",
-                            href: "/dashboard/verification",
+                            href: "/verification",
                             icon: <Shield className="w-5 h-5" />,
                         },
                         {
                             name: "Settings",
-                            href: "/dashboard/settings",
+                            href: "/settings",
                             icon: <Settings className="w-5 h-5" />,
                         },
                     ],

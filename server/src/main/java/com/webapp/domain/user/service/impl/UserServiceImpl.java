@@ -548,4 +548,34 @@ public class UserServiceImpl implements UserService {
 
         return userRepository.save(user);
     }
+
+    @Override
+    @Transactional
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        User user = getUserById(userId);
+
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BadRequestException("Incorrect old password");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Password changed for user: {}", user.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public User toggleNotificationPreference(Long userId, String type, boolean enabled) {
+        User user = getUserById(userId);
+
+        if ("email".equalsIgnoreCase(type)) {
+            user.setEmailNotifications(enabled);
+        } else if ("push".equalsIgnoreCase(type)) {
+            user.setPushNotifications(enabled);
+        } else {
+            throw new BadRequestException("Invalid notification type: " + type);
+        }
+
+        return userRepository.save(user);
+    }
 }

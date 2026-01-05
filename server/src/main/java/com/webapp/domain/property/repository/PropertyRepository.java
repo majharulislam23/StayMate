@@ -77,6 +77,22 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
         @org.springframework.data.jpa.repository.Query("SELECT p.propertyType, COUNT(p) FROM Property p GROUP BY p.propertyType")
         List<Object[]> countPropertiesByType();
 
-        @org.springframework.data.jpa.repository.Query("SELECT p.location, SUM(CASE WHEN p.status = 'Rented' THEN 1 ELSE 0 END), COUNT(p) FROM Property p GROUP BY p.location")
+        @org.springframework.data.jpa.repository.Query("SELECT p.location, COUNT(b.id), " +
+                        "(SELECT COUNT(p2) FROM Property p2 WHERE p2.location = p.location) " +
+                        "FROM Property p LEFT JOIN Booking b ON p.id = b.property.id AND b.status = 'CONFIRMED' " +
+                        "GROUP BY p.location")
         List<Object[]> findOccupancyByLocation();
+
+        long countByEmergencyAvailableTrue();
+
+        List<Property> findByEmergencyAvailableTrueAndStatus(String status);
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.status, COUNT(p) FROM Property p GROUP BY p.status")
+        List<Object[]> countByStatusGrouped();
+
+        @org.springframework.data.jpa.repository.Query("SELECT p.owner.id, COUNT(p) FROM Property p GROUP BY p.owner.id, p.title HAVING COUNT(p) > 1")
+        List<Object[]> findDuplicateTitles();
+
+        @org.springframework.data.jpa.repository.Query("SELECT SUM(p.beds) FROM Property p WHERE p.owner.id = :ownerId")
+        Long sumBedsByOwnerId(@org.springframework.data.repository.query.Param("ownerId") Long ownerId);
 }

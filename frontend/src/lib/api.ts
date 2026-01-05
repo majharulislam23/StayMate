@@ -1,11 +1,14 @@
 import {
     AdminDashboardDTO,
+    AdminDashboardStatDto,
     AuthResponse,
+    Booking,
     ConversationListResponse,
     ConversationResponse,
     CreateConversationRequest,
     DashboardStats,
     LandlordDashboardDTO,
+    LandlordOverviewStats,
     LoginRequest,
     MarkAsReadRequest,
     MessageListResponse,
@@ -16,8 +19,10 @@ import {
     NotificationResponse,
     NotificationSummary,
     NotificationUnreadCountResponse,
+    PropertySeatSummary,
     RegisterRequest,
     Report,
+    ReviewResponse,
     RoleSelectionRequest,
     SendMessageRequest,
     TokenRefreshRequest,
@@ -623,6 +628,45 @@ export const adminApi = {
 
     updateSettings: async (settings: Record<string, string>): Promise<Record<string, string>> => {
         const response = await api.put<Record<string, string>>("/api/admin/settings", settings)
+        return response.data
+    },
+
+    getDashboardStats: async (): Promise<AdminDashboardStatDto> => {
+        const response = await api.get<AdminDashboardStatDto>("/api/admin/dashboard")
+        return response.data
+    },
+
+    triggerFraudScan: async (): Promise<void> => {
+        await api.post("/api/admin/fraud/scan")
+    },
+}
+
+export const landlordApi = {
+    getOverview: async (): Promise<LandlordOverviewStats> => {
+        const response = await api.get<LandlordOverviewStats>("/api/landlord/dashboard/overview")
+        return response.data
+    },
+
+    getPropertySummaries: async (): Promise<PropertySeatSummary[]> => {
+        const response = await api.get<PropertySeatSummary[]>("/api/landlord/properties/summary")
+        return response.data
+    },
+
+    toggleSeatAvailability: async (seatId: number): Promise<void> => {
+        await api.patch(`/api/landlord/seats/${seatId}/availability`)
+    },
+
+    getBookings: async (): Promise<Booking[]> => {
+        const response = await api.get<Booking[]>("/api/landlord/bookings")
+        return response.data
+    },
+
+    updateBookingStatus: async (bookingId: number, status: string): Promise<void> => {
+        await api.patch(`/api/landlord/bookings/${bookingId}/status?status=${status}`)
+    },
+
+    getReviews: async (): Promise<ReviewResponse[]> => {
+        const response = await api.get<ReviewResponse[]>("/api/landlord/reviews")
         return response.data
     },
 }

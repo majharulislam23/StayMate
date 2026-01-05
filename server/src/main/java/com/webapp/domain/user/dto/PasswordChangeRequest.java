@@ -1,0 +1,9 @@
+package com.webapp.domain.user.dto;
+
+import lombok.Data;
+
+@Data
+public class PasswordChangeRequest {
+  private String oldPassword;
+  private String newPassword;
+}

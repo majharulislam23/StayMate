@@ -1,29 +1,40 @@
 package com.webapp.domain.user.controller;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.webapp.auth.security.UserPrincipal;
 import com.webapp.domain.user.dto.PublicUserDto;
 import com.webapp.domain.user.dto.UpdateProfileRequest;
 import com.webapp.domain.user.dto.UserDto;
 import com.webapp.domain.user.entity.User;
 import com.webapp.domain.user.mapper.UserMapper;
 import com.webapp.domain.user.repository.UserRepository;
-import com.webapp.auth.security.UserPrincipal;
 import com.webapp.domain.user.service.UserService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.Sort;
 
 @Slf4j
 @RestController
@@ -204,6 +215,25 @@ public class UserController {
                         @PathVariable Long id,
                         @RequestBody com.webapp.domain.user.dto.UserUpdateDto request) {
                 User user = userService.updateUser(id, request);
+                return ResponseEntity.ok(userMapper.toDto(user));
+        }
+
+        @Operation(summary = "Change password")
+        @PostMapping("/password")
+        public ResponseEntity<Map<String, String>> changePassword(
+                        @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
+                        @RequestBody com.webapp.domain.user.dto.PasswordChangeRequest request) {
+                userService.changePassword(currentUser.getId(), request.getOldPassword(), request.getNewPassword());
+                return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
+        }
+
+        @Operation(summary = "Update notification settings")
+        @PostMapping("/settings")
+        public ResponseEntity<UserDto> updateSettings(
+                        @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser,
+                        @RequestBody com.webapp.domain.user.dto.NotificationSettingRequest request) {
+                User user = userService.toggleNotificationPreference(currentUser.getId(), request.getType(),
+                                request.isEnabled());
                 return ResponseEntity.ok(userMapper.toDto(user));
         }
 

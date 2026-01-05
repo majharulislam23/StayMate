@@ -238,15 +238,58 @@ export interface LandlordDashboardDTO {
     totalInquiries: number
     occupancyRate: number
     incomingTenantRequests: Booking[]
-    myPropertiesOverview: any[] // TODO: Define PropertyResponse
+    myPropertiesOverview: PropertyResponse[]
 }
 
 export interface UserDashboardDTO {
     compatibilityMatchStats: number
     upcomingVisitsCount: number
     unreadNotificationsCount: number
-    recommendedRooms: any[] // TODO: Define PropertyResponse
-    recommendedRoommates: any[] // TODO: Define RoommatePostDto
+    recommendedRooms: PropertyResponse[]
+    recommendedRoommates: RoommatePostResponse[]
+    savedItemsCount: number
+    activeSearchesCount: number
+    pendingVisitsCount: number
+    emergencyRooms: PropertyResponse[]
+    verificationProgress: {
+        totalProgress: number
+        emailVerified: boolean
+        phoneVerified: boolean
+        profileCompleted: boolean
+        idVerified: boolean
+        referenceVerified: boolean
+    }
+    financeStats: {
+        totalSpentMonth: number
+        nextRentDue: number
+        recentExpenses: Expense[]
+    }
+}
+
+export interface PropertyResponse {
+    id: number
+    title: string
+    price: number
+    imageUrl: string
+    location: string
+    beds: number
+    baths: number
+}
+
+export interface RoommatePostResponse {
+    id: number
+    authorName: string
+    location: string
+    budget: number
+    moveInDate: string
+    lifestyle: string
+}
+
+export interface Expense {
+    id: number
+    title: string
+    amount: number
+    date: string
 }
 // Helper functions for role checking
 export const hasRole = (user: User | null, role: UserRole): boolean => {
@@ -557,4 +600,71 @@ export interface VerificationRequest {
     rejectionReason?: string
     createdAt: string
     updatedAt?: string
+}
+
+export interface AdminDashboardStatDto {
+    verificationStats: VerificationStats
+    listingStats: Record<string, number>
+    userAcquisition: UserAcquisitionPoint[]
+    recentFraudEvents: FraudEvent[]
+}
+
+export interface VerificationStats {
+    pendingIdentity: number
+    pendingProperty: number
+}
+
+export interface UserAcquisitionPoint {
+    date: string
+    role: string
+    count: number
+}
+
+export interface FraudEvent {
+    id: number
+    userId: number
+    userName?: string
+    type: "SCAM_RING" | "DUPLICATE_LISTING" | "SPAM_MESSAGES" | "FAKE_LOCATION"
+    severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+    metadata: string
+    createdAt: string
+}
+
+export interface LandlordOverviewStats {
+    totalProperties: number
+    totalSeats: number
+    occupiedSeats: number
+    vacantSeats: number
+    longTermVacantSeats: number
+    occupancyRate: number
+    averageRating: number
+    totalReviews: number
+}
+
+export interface SeatDto {
+    id: number
+    label: string
+    status: 'AVAILABLE' | 'OCCUPIED' | 'BLOCKED' | 'MAINTENANCE'
+    isOccupiedByBooking: boolean
+}
+
+export interface PropertySeatSummary {
+    id: number
+    title: string
+    address: string
+    totalBeds: number
+    occupiedBeds: number
+    availableBeds: number
+    seats: SeatDto[]
+    imageUrl: string
+}
+
+export interface ReviewResponse {
+    id: number
+    authorId: number
+    authorName: string
+    authorAvatar: string
+    rating: number
+    comment: string
+    createdAt: string
 }

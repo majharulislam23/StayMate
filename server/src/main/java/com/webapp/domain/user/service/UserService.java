@@ -96,4 +96,8 @@ public interface UserService extends UserDetailsService {
         User removeRole(Long userId, RoleName role);
 
         User updateAccountStatus(Long userId, com.webapp.domain.user.enums.AccountStatus status);
+
+        void changePassword(Long userId, String oldPassword, String newPassword);
+
+        User toggleNotificationPreference(Long userId, String type, boolean enabled);
 }

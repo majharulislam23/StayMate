@@ -93,4 +93,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         List<Booking> findIncomingRequests(@Param("landlordId") Long landlordId, Pageable pageable);
 
         long countByStatus(BookingStatus status);
+
+        @Query("SELECT b FROM Booking b WHERE b.property.id = :propertyId AND b.status = 'CONFIRMED' AND b.startDate <= CURRENT_DATE AND b.endDate >= CURRENT_DATE")
+        List<Booking> findActiveBookingsByPropertyId(@Param("propertyId") Long propertyId);
+
+        @Query("SELECT b FROM Booking b WHERE b.landlord.id = :landlordId AND b.status = 'CONFIRMED' AND b.startDate <= CURRENT_DATE AND b.endDate >= CURRENT_DATE")
+        List<Booking> findActiveBookingsByLandlordId(@Param("landlordId") Long landlordId);
 }
