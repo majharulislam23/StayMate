@@ -76,9 +76,20 @@ public class User {
     @Builder.Default
     private Boolean phoneVerified = false;
 
+    @Column(name = "phone_otp")
+    private String phoneOtp;
+
     @Column(name = "role_selected")
     @Builder.Default
     private boolean roleSelected = false;
+
+    @Column(name = "email_notifications")
+    @Builder.Default
+    private boolean emailNotifications = true;
+
+    @Column(name = "push_notifications")
+    @Builder.Default
+    private boolean pushNotifications = true;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider", nullable = false, columnDefinition = "varchar(255)")
@@ -133,6 +144,10 @@ public class User {
 
     @Column(name = "deletion_reason")
     private String deletionReason;
+
+    @Column(name = "seeking_mode")
+    @Builder.Default
+    private String seekingMode = "ROOM";
 
     @PreUpdate
     protected void onUpdate() {

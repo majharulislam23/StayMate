@@ -44,7 +44,11 @@ public class DashboardServiceImpl implements DashboardService {
         private final SavedPropertyRepository savedPropertyRepository;
         private final SavedRoommateRepository savedRoommateRepository;
         private final com.webapp.domain.roommate.RoommatePostRepository roommatePostRepository;
+        private final com.webapp.domain.user.mapper.UserMapper userMapper;
+
         private final com.webapp.domain.ai.service.MatchingService matchingService;
+        private final com.webapp.domain.verification.repository.VerificationRequestRepository verificationRequestRepository;
+        private final com.webapp.domain.dashboard.repository.ExpenseRepository expenseRepository;
 
         // Existing strategies (keeping for legacy support)
         private final List<DashboardStrategy> strategies;
@@ -196,6 +200,9 @@ public class DashboardServiceImpl implements DashboardService {
                                 .bannedUsersCount(bannedUsers)
                                 .warningUsersCount(warningUsers + suspendedUsers)
                                 .totalEmergencyRoomsAvailable(emergencyRoomsAvailable)
+                                .pendingVerificationUsers(userRepository.findTop5ByEmailVerifiedFalse().stream()
+                                                .map(userMapper::toDto)
+                                                .collect(Collectors.toList()))
                                 .occupancyAnalytics(java.util.Collections.emptyList())
                                 .propertyGrowthStats(java.util.Collections.emptyList())
                                 .propertyTypeStats(typeStats)
@@ -278,10 +285,84 @@ public class DashboardServiceImpl implements DashboardService {
                 // Active Searches (Mock -> Real if possible, else 0)
                 long activeSearches = 0; // Set to 0 to be honest if we don't track it yet
 
-                // Emergency Rooms: Find lowest price available rooms (Real)
+                // Verification Progress Calculation
+                boolean emailVerified = user.isEmailVerified();
+                boolean phoneVerified = user.isPhoneVerified();
+                boolean profileCompleted = (user.getBio() != null && !user.getBio().isEmpty())
+                                && (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty());
+
+                // Check for ID verification (APPROVED request of type ID_CARD or PASSPORT)
+                boolean idVerified = verificationRequestRepository.existsByUserIdAndStatusAndDocumentTypeIn(
+                                user.getId(),
+                                com.webapp.domain.verification.entity.VerificationRequest.VerificationStatus.APPROVED,
+                                List.of("ID_CARD", "PASSPORT"));
+
+                // Check for Reference verification (could be another document type or logic)
+                boolean referenceVerified = false; // Placeholder or check other doc types
+
+                int progress = 0;
+                if (emailVerified)
+                        progress += 20;
+                if (phoneVerified)
+                        progress += 20;
+                if (profileCompleted)
+                        progress += 20;
+                if (idVerified)
+                        progress += 20;
+                if (referenceVerified)
+                        progress += 20;
+
+                UserDashboardDTO.VerificationProgress verProgress = UserDashboardDTO.VerificationProgress.builder()
+                                .totalProgress(progress)
+                                .emailVerified(emailVerified)
+                                .phoneVerified(phoneVerified)
+                                .profileCompleted(profileCompleted)
+                                .idVerified(idVerified)
+                                .referenceVerified(referenceVerified)
+                                .build();
+
+                // Finance Stats (Expenses)
+                java.math.BigDecimal totalSpentMonth = java.math.BigDecimal.ZERO;
+                List<com.webapp.domain.dashboard.entity.Expense> expenses = expenseRepository
+                                .findByPayerId(user.getId());
+                // Filter for current month (simplified)
+                java.time.LocalDate now = java.time.LocalDate.now();
+                totalSpentMonth = expenses.stream()
+                                .filter(e -> e.getExpenseDate().getMonth() == now.getMonth()
+                                                && e.getExpenseDate().getYear() == now.getYear())
+                                .map(com.webapp.domain.dashboard.entity.Expense::getAmount)
+                                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+                List<java.util.Map<String, Object>> recentExpenses = expenses.stream()
+                                .sorted((e1, e2) -> e2.getExpenseDate().compareTo(e1.getExpenseDate()))
+                                .limit(5)
+                                .map(e -> {
+                                        java.util.Map<String, Object> map = new java.util.HashMap<>();
+                                        map.put("id", e.getId());
+                                        map.put("title", e.getTitle());
+                                        map.put("amount", e.getAmount());
+                                        map.put("date", e.getExpenseDate());
+                                        return map;
+                                })
+                                .collect(Collectors.toList());
+
+                // Next Rent Due (Mock -> Booking end date or fixed date?)
+                // Let's assume next rent is due on 1st of next month for active booking?
+                // Or just show 0 if no active booking.
+                java.math.BigDecimal nextRent = java.math.BigDecimal.ZERO;
+                // TODO: Logic to get rent amount from active booking
+
+                UserDashboardDTO.FinanceStats finance = UserDashboardDTO.FinanceStats.builder()
+                                .totalSpentMonth(totalSpentMonth)
+                                .nextRentDue(nextRent)
+                                .recentExpenses(recentExpenses)
+                                .build();
+
+                // Emergency Rooms: Find real emergency rooms
                 List<com.webapp.domain.property.dto.PropertyResponse> emergency = propertyRepository
-                                .findTop5ByStatusOrderByPriceAmountAsc("Active")
+                                .findByEmergencyAvailableTrueAndStatus("Active")
                                 .stream()
+                                .limit(5)
                                 .map(this::mapToPropertyResponse)
                                 .collect(Collectors.toList());
 
@@ -305,6 +386,8 @@ public class DashboardServiceImpl implements DashboardService {
                                 .activeSearchesCount(activeSearches)
                                 .pendingVisitsCount(pendingVisits)
                                 .emergencyRooms(emergency)
+                                .verificationProgress(verProgress)
+                                .financeStats(finance)
                                 .build();
         }
 

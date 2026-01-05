@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.webapp.domain.user.entity.User;
 import com.webapp.domain.user.repository.UserRepository;
+import com.webapp.domain.verification.dto.VerificationStatusResponse;
 import com.webapp.domain.verification.entity.VerificationRequest;
 import com.webapp.domain.verification.repository.VerificationRepository;
 
@@ -75,5 +76,69 @@ public class VerificationService {
     request.setUpdatedAt(LocalDateTime.now());
 
     return java.util.Objects.requireNonNull(verificationRepository.save(request));
+  }
+
+  @Transactional(readOnly = true)
+  public VerificationStatusResponse getVerificationStatus(Long userId) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+    boolean profileComplete = isProfileComplete(user);
+
+    // Check for existing document verification request
+    String documentStatus = "NOT_UPLOADED";
+    String rejectionReason = null;
+
+    List<VerificationRequest> requests = verificationRepository.findByUserId(userId);
+    // Get latest request
+    if (!requests.isEmpty()) {
+      VerificationRequest latest = requests.get(requests.size() - 1);
+      documentStatus = latest.getStatus().name();
+      if (latest.getStatus() == VerificationRequest.VerificationStatus.REJECTED) {
+        rejectionReason = latest.getRejectionReason();
+      }
+    }
+
+    return VerificationStatusResponse.builder()
+        .emailVerified(user.isEmailVerified())
+        .phoneVerified(user.isPhoneVerified())
+        .profileComplete(profileComplete)
+        .documentStatus(documentStatus)
+        .rejectionReason(rejectionReason)
+        .build();
+  }
+
+  private boolean isProfileComplete(User user) {
+    return user.getFirstName() != null && !user.getFirstName().isEmpty() &&
+        user.getLastName() != null && !user.getLastName().isEmpty() &&
+        user.getCity() != null && !user.getCity().isEmpty();
+  }
+
+  @Transactional
+  public String initiatePhoneVerification(Long userId, String phoneNumber) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+    user.setPhoneNumber(phoneNumber);
+    // Generate 6 digit OTP
+    String otp = String.valueOf((int) (Math.random() * 900000) + 100000);
+    user.setPhoneOtp(otp);
+
+    userRepository.save(user);
+    return otp;
+  }
+
+  @Transactional
+  public boolean verifyPhone(Long userId, String otp) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+    if (user.getPhoneOtp() != null && user.getPhoneOtp().equals(otp)) {
+      user.setPhoneVerified(true);
+      user.setPhoneOtp(null); // Clear OTP
+      userRepository.save(user);
+      return true;
+    }
+    return false;
   }
 }

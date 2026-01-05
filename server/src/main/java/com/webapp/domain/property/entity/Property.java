@@ -83,6 +83,10 @@ public class Property {
     @Builder.Default
     private String status = "Active"; // Active, Pending, Rented
 
+    @Column(name = "emergency_available")
+    @Builder.Default
+    private boolean emergencyAvailable = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -111,5 +111,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
         long countByRoleAndAccountStatus(@Param("role") RoleName role,
                         @Param("status") com.webapp.domain.user.enums.AccountStatus status);
 
+        List<User> findTop5ByEmailVerifiedFalse();
+
         long countByAccountStatus(com.webapp.domain.user.enums.AccountStatus accountStatus);
+
+        @Query("SELECT CAST(u.createdAt as date) as date, r, COUNT(u) FROM User u JOIN u.roles r GROUP BY CAST(u.createdAt as date), r")
+        List<Object[]> getUserAcquisitionStats();
 }

@@ -6,12 +6,15 @@ import {
  AlertTriangle,
  Bell,
  Calendar,
+ CheckCircle,
  Heart,
  Home,
  MapPin,
  Search,
+ ShieldCheck,
  UserPlus,
- Users
+ Users,
+ Wallet
 } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -119,6 +122,78 @@ export function UserDashboard({ user, stats, isDark }: UserDashboardProps) {
      isDark={isDark}
     />
    </div>
+   {/* 2.1 Verification & Finance Row */}
+   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {/* Verification Progress */}
+    {stats.verificationProgress && (
+     <div className={`p-6 rounded-2xl border ${isDark ? "bg-slate-900/50 border-slate-700" : "bg-white border-slate-100"}`}>
+      <div className="flex items-center gap-2 mb-4">
+       <ShieldCheck className="w-5 h-5 text-indigo-500" />
+       <h3 className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>Verification Status</h3>
+       <span className="ml-auto text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
+        {stats.verificationProgress.totalProgress}%
+       </span>
+      </div>
+      <div className="w-full bg-slate-200 rounded-full h-2.5 mb-4 dark:bg-slate-700">
+       <div className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${stats.verificationProgress.totalProgress}%` }}></div>
+      </div>
+      <div className="space-y-3">
+       {[
+        { label: "Email Verified", done: stats.verificationProgress.emailVerified },
+        { label: "Phone Verified", done: stats.verificationProgress.phoneVerified },
+        { label: "Profile Complete", done: stats.verificationProgress.profileCompleted },
+        { label: "ID Verified", done: stats.verificationProgress.idVerified },
+       ].map((item, idx) => (
+        <div key={idx} className="flex items-center justify-between text-sm">
+         <span className={isDark ? "text-slate-300" : "text-slate-600"}>{item.label}</span>
+         {item.done ? (
+          <CheckCircle className="w-4 h-4 text-emerald-500" />
+         ) : (
+          <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600" />
+         )}
+        </div>
+       ))}
+      </div>
+     </div>
+    )}
+
+    {/* Finance Stats */}
+    {stats.financeStats && (
+     <div className={`p-6 rounded-2xl border ${isDark ? "bg-slate-900/50 border-slate-700" : "bg-white border-slate-100"}`}>
+      <div className="flex items-center gap-2 mb-4">
+       <Wallet className="w-5 h-5 text-emerald-500" />
+       <h3 className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>Monthly Finances</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-4 mb-6">
+       <div className={`p-3 rounded-xl ${isDark ? "bg-slate-800" : "bg-slate-50"}`}>
+        <p className="text-xs text-slate-500 mb-1">Spent this Month</p>
+        <p className={`text-xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+         ${stats.financeStats.totalSpentMonth || 0}
+        </p>
+       </div>
+       <div className={`p-3 rounded-xl ${isDark ? "bg-slate-800" : "bg-slate-50"}`}>
+        <p className="text-xs text-slate-500 mb-1">Next Rent Due</p>
+        <p className={`text-xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+         ${stats.financeStats.nextRentDue || 0}
+        </p>
+       </div>
+      </div>
+      {stats.financeStats.recentExpenses?.length > 0 && (
+       <div>
+        <h4 className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wider">Recent Expenses</h4>
+        <div className="space-y-3">
+         {stats.financeStats.recentExpenses.map((expense: any) => (
+          <div key={expense.id} className="flex justify-between items-center text-sm">
+           <span className={isDark ? "text-slate-300" : "text-slate-600 truncate max-w-[150px]"}>{expense.title}</span>
+           <span className="font-medium text-slate-900 dark:text-white">${expense.amount}</span>
+          </div>
+         ))}
+        </div>
+       </div>
+      )}
+     </div>
+    )}
+   </div>
 
    {/* 3. Main Content Grid */}
    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -174,6 +249,34 @@ export function UserDashboard({ user, stats, isDark }: UserDashboardProps) {
        </div>
       )}
      </div>
+
+     {/* Emergency Rooms Section */}
+     {stats.emergencyRooms && stats.emergencyRooms.length > 0 && (
+      <div className="mt-8">
+       <div className="flex items-center gap-2 mb-4">
+        <AlertTriangle className="w-5 h-5 text-red-500" />
+        <h3 className={`text-xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+         Emergency Availability
+        </h3>
+       </div>
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {stats.emergencyRooms.map((room: any) => (
+         <Link href={`/properties/${room.id}`} key={room.id} className={`group rounded-2xl overflow-hidden border border-red-200 ${isDark ? "bg-red-950/10 border-red-900/50" : "bg-red-50"
+          } hover:shadow-lg transition-all`}>
+          <div className="p-4">
+           <div className="flex justify-between items-start mb-2">
+            <h4 className={`font-bold ${isDark ? "text-red-200" : "text-red-900"}`}>{room.title}</h4>
+            <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded">URGENT</span>
+           </div>
+           <p className={`text-sm ${isDark ? "text-red-300" : "text-red-700"}`}>
+            {room.location} • ${room.price}/mo
+           </p>
+          </div>
+         </Link>
+        ))}
+       </div>
+      </div>
+     )}
 
      {/* Quick Action Cards Row */}
      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">

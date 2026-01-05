@@ -1,5 +1,6 @@
 package com.webapp.domain.dashboard.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import com.webapp.domain.property.dto.PropertyResponse;
@@ -24,6 +25,32 @@ public class UserDashboardDTO {
   private long activeSearchesCount;
   private long pendingVisitsCount;
 
+  // Verification Tracking
+  private VerificationProgress verificationProgress;
+
+  // Finance / Expense Stats
+  private FinanceStats financeStats;
+
   // Emergency / Quick Access
   private List<PropertyResponse> emergencyRooms;
+
+  @Data
+  @Builder
+  public static class VerificationProgress {
+    private int totalProgress; // 0-100
+    private boolean emailVerified;
+    private boolean phoneVerified;
+    private boolean profileCompleted;
+    private boolean idVerified;
+    private boolean referenceVerified;
+  }
+
+  @Data
+  @Builder
+  public static class FinanceStats {
+    private BigDecimal totalSpentMonth;
+    private BigDecimal nextRentDue;
+    private List<java.util.Map<String, Object>> recentExpenses; // Simplified for UI
+  }
+
 }

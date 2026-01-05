@@ -35,7 +35,9 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
                 "com.webapp.domain.maintenance.entity",
                 "com.webapp.domain.saved.entity",
                 "com.webapp.domain.setting.entity",
-                "com.webapp.domain.verification.entity"
+                "com.webapp.domain.verification.entity",
+                "com.webapp.domain.admin.entity",
+                "com.webapp.domain.dashboard.entity"
 })
 @EnableJpaRepositories(basePackages = {
                 "com.webapp.domain.user.repository",
@@ -53,7 +55,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
                 "com.webapp.domain.maintenance.repository",
                 "com.webapp.domain.saved.repository",
                 "com.webapp.domain.setting.repository",
-                "com.webapp.domain.verification.repository"
+                "com.webapp.domain.verification.repository",
+                "com.webapp.domain.admin.repository"
 })
 public class Application {
 

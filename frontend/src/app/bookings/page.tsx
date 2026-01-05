@@ -1,5 +1,6 @@
 "use client"
 
+import DashboardLayout from "@/components/DashboardLayout"
 import { useAuth } from "@/context/AuthContext"
 import { bookingApi } from "@/lib/api"
 import { format } from "date-fns"
@@ -66,14 +67,7 @@ export default function MyBookingsPage() {
     if (loading) return <div className="p-8"><div className="w-8 h-8 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" /></div>
 
     return (
-        <div className="p-6 md:p-8 space-y-6 max-w-5xl mx-auto">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Bookings</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Manage your trips and rental requests</p>
-                </div>
-            </div>
-
+        <DashboardLayout title="My Bookings">
             <div className="space-y-4">
                 {bookings.length === 0 ? (
                     <div className="p-12 text-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
@@ -143,6 +137,6 @@ export default function MyBookingsPage() {
                     ))
                 )}
             </div>
-        </div>
+        </DashboardLayout>
     )
 }
