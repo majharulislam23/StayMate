@@ -234,7 +234,7 @@ export default function Sidebar() {
                     },
                     {
                         name: "Saved",
-                        href: "/saved",
+                        href: "/dashboard/saved",
                         icon: <Heart className="w-5 h-5" />,
                     },
                 ],
