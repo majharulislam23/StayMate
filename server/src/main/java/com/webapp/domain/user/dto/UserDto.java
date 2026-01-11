@@ -41,6 +41,13 @@ public class UserDto {
 
     private String accountStatus;
     private LocalDateTime deletionScheduledAt;
+    private String deletionReason;
+
+    // Enhanced fields
+    private String gender;
+    private String seekingMode;
+    private boolean emailNotifications;
+    private boolean pushNotifications;
 
     public boolean isAdmin() {
         return roles != null && roles.contains("ROLE_ADMIN");

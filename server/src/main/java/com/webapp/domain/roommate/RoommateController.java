@@ -39,11 +39,13 @@ public class RoommateController {
 
   @GetMapping
   public ResponseEntity<List<RoommatePostDto>> searchPosts(
+      @AuthenticationPrincipal UserPrincipal userPrincipal,
       @RequestParam(required = false) String location,
       @RequestParam(required = false) Double minBudget,
       @RequestParam(required = false) Double maxBudget,
       @RequestParam(required = false) String genderPreference) {
-    return ResponseEntity.ok(roommateService.searchPosts(location, minBudget, maxBudget, genderPreference));
+    Long userId = userPrincipal != null ? userPrincipal.getId() : null;
+    return ResponseEntity.ok(roommateService.searchPosts(userId, location, minBudget, maxBudget, genderPreference));
   }
 
   @GetMapping("/my")

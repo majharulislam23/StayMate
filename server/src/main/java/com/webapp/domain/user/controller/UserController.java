@@ -196,6 +196,12 @@ public class UserController {
                         userPage = userService.getAllUsers(pageable);
                 }
 
+                log.info("Admin fetching users: found {} users (page {}/{} using size {})",
+                                userPage.getTotalElements(),
+                                userPage.getNumber(),
+                                userPage.getTotalPages(),
+                                userPage.getSize());
+
                 return ResponseEntity.ok(userPage.map(userMapper::toDto));
         }
 

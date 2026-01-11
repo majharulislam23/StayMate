@@ -45,6 +45,7 @@ public class DashboardServiceImpl implements DashboardService {
         private final SavedRoommateRepository savedRoommateRepository;
         private final com.webapp.domain.roommate.RoommatePostRepository roommatePostRepository;
         private final com.webapp.domain.user.mapper.UserMapper userMapper;
+        private final com.webapp.domain.notification.repository.NotificationRepository notificationRepository;
 
         private final com.webapp.domain.ai.service.MatchingService matchingService;
         private final com.webapp.domain.verification.repository.VerificationRequestRepository verificationRequestRepository;
@@ -82,12 +83,20 @@ public class DashboardServiceImpl implements DashboardService {
 
         @Override
         public AdminDashboardDTO getAdminDashboard(User user) {
-                // Count ACTIVE users only (excluding BANNED, DELETED, etc.)
-                long totalUsers = userRepository.countByRoleAndAccountStatus(RoleName.ROLE_USER,
+                // FIXED: Use new accurate counting methods to prevent double-counting users
+                // with multiple roles
+
+                // Total Tenants (ROLE_USER excluding admins)
+                long totalActiveUsers = userRepository.countNonAdminUsersByRoleAndStatus(
+                                RoleName.ROLE_USER,
                                 com.webapp.domain.user.enums.AccountStatus.ACTIVE);
-                // Count ACTIVE landlords only
-                long totalLandlords = userRepository.countByRoleAndAccountStatus(RoleName.ROLE_HOUSE_OWNER,
+
+                // Users with ROLE_HOUSE_OWNER (excluding admins)
+                long totalLandlords = userRepository.countNonAdminUsersByRoleAndStatus(
+                                RoleName.ROLE_HOUSE_OWNER,
                                 com.webapp.domain.user.enums.AccountStatus.ACTIVE);
+
+                // For "Total Users" display, we use totalActiveUsers (now strictly Tenants)
 
                 long totalListings = propertyRepository.count();
                 long verifiedListings = propertyRepository.countVerifiedProperties();
@@ -183,7 +192,8 @@ public class DashboardServiceImpl implements DashboardService {
                                 .collect(Collectors.toList());
 
                 return AdminDashboardDTO.builder()
-                                .totalUsers(totalUsers)
+                                .totalUsers(totalActiveUsers) // Fixed: now uses total active users instead of
+                                                              // role-based count
                                 .totalLandlords(totalLandlords)
                                 .totalListings(totalListings)
                                 .verifiedListingsCount(verifiedListings)
@@ -257,7 +267,7 @@ public class DashboardServiceImpl implements DashboardService {
         @Override
         public UserDashboardDTO getUserDashboard(User user) {
                 long upcoming = bookingRepository.countUpcomingByTenantId(user.getId());
-                long unread = messageRepository.countUnreadByRecipientId(user.getId());
+                long unread = notificationRepository.countUnreadByUserId(user.getId());
 
                 List<com.webapp.domain.property.dto.PropertyResponse> recommended = propertyRepository
                                 .searchProperties(user.getCity(), null, null, null, null, null)

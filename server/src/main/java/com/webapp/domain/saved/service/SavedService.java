@@ -34,7 +34,12 @@ public class SavedService {
   @Transactional(readOnly = true)
   public List<Property> getSavedProperties(Long userId) {
     return savedPropertyRepository.findByUserIdOrderBySavedAtDesc(userId).stream()
-        .map(SavedProperty::getProperty)
+        .map(saved -> {
+          Property property = saved.getProperty();
+          property.setSaved(true);
+          // Set transient or DTO field if it exists, or handling is done in frontend
+          return property;
+        })
         .collect(Collectors.toList());
   }
 
