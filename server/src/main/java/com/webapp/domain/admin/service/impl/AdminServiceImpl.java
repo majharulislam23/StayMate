@@ -16,7 +16,10 @@ import com.webapp.domain.admin.dto.VerificationStats;
 import com.webapp.domain.admin.entity.FraudEvent;
 import com.webapp.domain.admin.repository.FraudEventRepository;
 import com.webapp.domain.admin.service.AdminService;
+import com.webapp.domain.booking.enums.BookingStatus;
+import com.webapp.domain.property.enums.SeatStatus;
 import com.webapp.domain.property.repository.PropertyRepository;
+import com.webapp.domain.user.enums.RoleName;
 import com.webapp.domain.user.repository.UserRepository;
 import com.webapp.domain.verification.entity.VerificationRequest.VerificationStatus;
 import com.webapp.domain.verification.repository.VerificationRequestRepository;
@@ -31,6 +34,10 @@ public class AdminServiceImpl implements AdminService {
   private final PropertyRepository propertyRepository;
   private final UserRepository userRepository;
   private final FraudEventRepository fraudEventRepository;
+  private final com.webapp.domain.booking.repository.BookingRepository bookingRepository;
+  private final com.webapp.domain.property.repository.SeatRepository seatRepository;
+  private final com.webapp.domain.audit.repository.AuditLogRepository auditLogRepository;
+  private final com.webapp.domain.maintenance.repository.MaintenanceRequestRepository maintenanceRequestRepository;
 
   @Override
   @Transactional(readOnly = true)
@@ -38,6 +45,33 @@ public class AdminServiceImpl implements AdminService {
     // 1. Verification Stats
     long pendingIdentity = verificationRequestRepository.countByStatus(VerificationStatus.PENDING);
     long pendingProperties = propertyRepository.countByStatus("Pending");
+
+    // Calculate Occupancy Rate
+    long totalSeats = seatRepository.count();
+    long occupiedSeats = seatRepository.countByStatus(SeatStatus.OCCUPIED);
+    double occupancyRate = totalSeats > 0 ? (double) occupiedSeats / totalSeats * 100 : 0.0;
+
+    // Additional Metrics
+    long totalUsers = userRepository.count();
+    long totalLandlords = userRepository.countByRole(RoleName.ROLE_HOUSE_OWNER); // Use ROLE_HOUSE_OWNER for Landlord
+    long totalListings = propertyRepository.count();
+    long verifiedListings = propertyRepository.countByStatus("Active"); // Assuming Active means Verified/Approved here
+                                                                        // for now
+
+    // Booking Metrics
+    long totalBookings = bookingRepository.count();
+    long confirmedBookings = bookingRepository.countByStatus(BookingStatus.CONFIRMED);
+    long cancelledBookings = bookingRepository.countByStatus(BookingStatus.CANCELLED);
+
+    // Other Metrics
+    long openMaintenance = maintenanceRequestRepository.countByStatusIn(
+        List.of(com.webapp.domain.maintenance.entity.MaintenanceRequest.Status.OPEN,
+            com.webapp.domain.maintenance.entity.MaintenanceRequest.Status.IN_PROGRESS,
+            com.webapp.domain.maintenance.entity.MaintenanceRequest.Status.ON_HOLD));
+    // Simple count for today's logs
+    long todayAuditLogs = auditLogRepository.count();
+    // DAU approximation
+    long activeUsers = userRepository.countByLastLoginAtAfter(java.time.LocalDateTime.now().minusHours(24));
 
     VerificationStats verificationStats = VerificationStats.builder()
         .pendingIdentity(pendingIdentity)
@@ -77,6 +111,19 @@ public class AdminServiceImpl implements AdminService {
         .listingStats(listingStats)
         .userAcquisition(userAcquisition)
         .recentFraudEvents(fraudEvents)
+        // New Fields
+        .totalUsers(totalUsers)
+        .totalLandlords(totalLandlords)
+        .totalListings(totalListings)
+        .verifiedListingsCount(verifiedListings)
+        .pendingVerificationsCount(pendingIdentity)
+        .seatOccupancyRate(occupancyRate)
+        .activeUsers(activeUsers)
+        .totalBookings(totalBookings)
+        .confirmedBookings(confirmedBookings)
+        .cancelledBookings(cancelledBookings)
+        .openMaintenanceRequests(openMaintenance)
+        .todayAuditLogs(todayAuditLogs)
         .build();
   }
 

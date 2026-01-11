@@ -60,6 +60,12 @@ public class Booking {
     @Column(name = "check_out_time")
     private LocalDateTime checkOutTime;
 
+    @Column(name = "payment_method")
+    private String paymentMethod; // e.g., "bKash", "CREDIT_CARD", "Nagad"
+
+    @Column(name = "refund_amount")
+    private java.math.BigDecimal refundAmount;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "varchar(255)")
     private BookingStatus status;

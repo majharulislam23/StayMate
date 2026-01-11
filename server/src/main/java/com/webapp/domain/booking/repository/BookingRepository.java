@@ -61,6 +61,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         @Query("SELECT b FROM Booking b LEFT JOIN FETCH b.tenant LEFT JOIN FETCH b.landlord ORDER BY b.createdAt DESC")
         List<Booking> findRecentBookings(Pageable pageable);
 
+        @Query("SELECT new com.webapp.domain.admin.dto.RevenuePoint(b.startDate, SUM(p.priceAmount), CAST(COUNT(b) AS int)) "
+                        +
+                        "FROM Booking b JOIN b.property p " +
+                        "WHERE b.status IN (com.webapp.domain.booking.enums.BookingStatus.CONFIRMED, com.webapp.domain.booking.enums.BookingStatus.COMPLETED) "
+                        +
+                        "GROUP BY b.startDate " +
+                        "ORDER BY b.startDate ASC")
+        List<com.webapp.domain.admin.dto.RevenuePoint> getRevenueStats();
+
         // Revenue Calculation: Sum of (days * price) for CONFIRMED bookings
         // Assuming price is per month/day? Context implies monthly usually for rentals
         // but let's assume price is per stay or handle logic in Service if complex.
@@ -99,4 +108,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
         @Query("SELECT b FROM Booking b WHERE b.landlord.id = :landlordId AND b.status = 'CONFIRMED' AND b.startDate <= CURRENT_DATE AND b.endDate >= CURRENT_DATE")
         List<Booking> findActiveBookingsByLandlordId(@Param("landlordId") Long landlordId);
+
+        // Financial Analytics Queries
+
+        @Query("SELECT SUM(b.refundAmount) FROM Booking b WHERE b.refundAmount IS NOT NULL")
+        java.math.BigDecimal sumTotalRefunds();
+
+        @Query("SELECT b.paymentMethod, COUNT(b) FROM Booking b WHERE b.status IN ('CONFIRMED', 'COMPLETED') AND b.paymentMethod IS NOT NULL GROUP BY b.paymentMethod")
+        List<Object[]> countByPaymentMethod();
+
+        @Query("SELECT SUM(p.priceAmount) FROM Booking b JOIN b.property p WHERE b.status IN ('CONFIRMED', 'COMPLETED') AND b.createdAt BETWEEN :startDate AND :endDate")
+        java.math.BigDecimal sumRevenueBetween(@Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate);
+
+        @Query("SELECT COUNT(b) FROM Booking b WHERE b.status IN ('CONFIRMED', 'COMPLETED') AND b.createdAt BETWEEN :startDate AND :endDate")
+        long countBookingsBetween(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 }
