@@ -94,4 +94,8 @@ public class Property {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @jakarta.persistence.Transient
+    @Builder.Default
+    private boolean isSaved = false;
 }

@@ -10,6 +10,8 @@ import lombok.Data;
 
 @Data
 @Builder
+@lombok.NoArgsConstructor
+@lombok.AllArgsConstructor
 public class RoommatePostDto {
   private Long id;
   private Long userId;

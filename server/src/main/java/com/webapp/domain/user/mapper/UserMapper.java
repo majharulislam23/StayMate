@@ -45,6 +45,11 @@ public class UserMapper {
                 .enabled(user.isEnabled())
                 .accountStatus(user.getAccountStatus() != null ? user.getAccountStatus().name() : "ACTIVE")
                 .deletionScheduledAt(user.getDeletionScheduledAt())
+                .deletionReason(user.getDeletionReason())
+                .gender(user.getGender())
+                .seekingMode(user.getSeekingMode())
+                .emailNotifications(user.isEmailNotifications())
+                .pushNotifications(user.isPushNotifications())
                 .build();
     }
 

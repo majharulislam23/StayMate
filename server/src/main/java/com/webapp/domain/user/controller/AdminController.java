@@ -81,37 +81,10 @@ public class AdminController {
 
     // ==================== Analytics (Real) ====================
 
-    @GetMapping("/analytics/revenue")
-    public ResponseEntity<Map<String, Object>> getRevenueAnalytics() {
-        // Fetch revenue for the last 6 months
-        java.time.LocalDateTime sixMonthsAgo = java.time.LocalDateTime.now().minusMonths(6);
-        List<Object[]> monthlyRevenue = bookingRepository.getMonthlyRevenue(sixMonthsAgo);
+    // ==================== Analytics (Real) handled in AdminAnalyticsController
+    // ====================
 
-        List<String> labels = new java.util.ArrayList<>();
-        List<java.math.BigDecimal> data = new java.util.ArrayList<>();
-
-        // Initialize map with 0s for last 6 months to ensure continuous graph
-        Map<Integer, java.math.BigDecimal> revenueMap = new java.util.HashMap<>();
-        for (Object[] row : monthlyRevenue) {
-            revenueMap.put((Integer) row[0], (java.math.BigDecimal) row[1]);
-        }
-
-        java.time.format.DateTimeFormatter monthFormatter = java.time.format.DateTimeFormatter.ofPattern("MMM");
-
-        for (int i = 5; i >= 0; i--) {
-            java.time.LocalDateTime date = java.time.LocalDateTime.now().minusMonths(i);
-            int monthValue = date.getMonthValue();
-
-            labels.add(date.format(monthFormatter));
-            data.add(revenueMap.getOrDefault(monthValue, java.math.BigDecimal.ZERO));
-        }
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("labels", labels);
-        response.put("data", data);
-
-        return ResponseEntity.ok(response);
-    }
+    // ==================== Reports (Stub) ====================
 
     // ==================== Reports (Stub) ====================
 

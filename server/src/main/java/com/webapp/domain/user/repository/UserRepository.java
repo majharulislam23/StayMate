@@ -18,10 +18,15 @@ import com.webapp.domain.user.enums.RoleName;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
-        // Override findAll to ensure distinct results (avoids duplicates from eager
-        // roles fetch)
-        @Override
-        @Query(value = "SELECT DISTINCT u FROM User u", countQuery = "SELECT COUNT(DISTINCT u) FROM User u")
+        @Query("SELECT new com.webapp.domain.admin.dto.UserAcquisitionPoint(function('date_format', u.createdAt, '%Y-%m-%d'), r, COUNT(u)) "
+                        +
+                        "FROM User u JOIN u.roles r " +
+                        "WHERE r IN ('ROLE_USER', 'ROLE_HOUSE_OWNER') " +
+                        "GROUP BY function('date_format', u.createdAt, '%Y-%m-%d'), r " +
+                        "ORDER BY function('date_format', u.createdAt, '%Y-%m-%d') ASC")
+        List<com.webapp.domain.admin.dto.UserAcquisitionPoint> getUserGrowthStats();
+
+        @Query(value = "SELECT DISTINCT u FROM User u LEFT JOIN u.roles r", countQuery = "SELECT COUNT(DISTINCT u) FROM User u LEFT JOIN u.roles r")
         @org.springframework.lang.NonNull
         Page<User> findAll(@org.springframework.lang.NonNull Pageable pageable);
 
@@ -117,4 +122,31 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
         @Query("SELECT CAST(u.createdAt as date) as date, r, COUNT(u) FROM User u JOIN u.roles r GROUP BY CAST(u.createdAt as date), r")
         List<Object[]> getUserAcquisitionStats();
+
+        // New methods for accurate role counting (prevents double-counting users with
+        // multiple roles)
+
+        /**
+         * Count users who have a specific role, excluding admins.
+         */
+        @Query("SELECT COUNT(DISTINCT u) FROM User u WHERE u.accountStatus = :status " +
+                        "AND :role MEMBER OF u.roles " +
+                        "AND com.webapp.domain.user.enums.RoleName.ROLE_ADMIN NOT MEMBER OF u.roles")
+        long countNonAdminUsersByRoleAndStatus(@Param("role") RoleName role,
+                        @Param("status") com.webapp.domain.user.enums.AccountStatus status);
+
+        /**
+         * Count users who ONLY have ROLE_USER (exclusive tenants).
+         */
+        @Query("SELECT COUNT(DISTINCT u) FROM User u WHERE u.accountStatus = :status " +
+                        "AND com.webapp.domain.user.enums.RoleName.ROLE_USER MEMBER OF u.roles " +
+                        "AND com.webapp.domain.user.enums.RoleName.ROLE_HOUSE_OWNER NOT MEMBER OF u.roles " +
+                        "AND com.webapp.domain.user.enums.RoleName.ROLE_ADMIN NOT MEMBER OF u.roles")
+        long countExclusiveTenants(@Param("status") com.webapp.domain.user.enums.AccountStatus status);
+
+        /**
+         * Count all unique active users (any role).
+         */
+        @Query("SELECT COUNT(DISTINCT u) FROM User u WHERE u.accountStatus = :status")
+        long countDistinctByAccountStatus(@Param("status") com.webapp.domain.user.enums.AccountStatus status);
 }

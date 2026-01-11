@@ -43,8 +43,13 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
                         "(:propertyType IS NULL OR CAST(p.propertyType as string) = :propertyType) AND "
                         +
                         "p.status = 'Active'")
-        List<Property> searchProperties(String location, BigDecimal minPrice, BigDecimal maxPrice, Integer minBeds,
-                        Integer minBaths, String propertyType);
+        List<Property> searchProperties(
+                        @org.springframework.data.repository.query.Param("location") String location,
+                        @org.springframework.data.repository.query.Param("minPrice") BigDecimal minPrice,
+                        @org.springframework.data.repository.query.Param("maxPrice") BigDecimal maxPrice,
+                        @org.springframework.data.repository.query.Param("minBeds") Integer minBeds,
+                        @org.springframework.data.repository.query.Param("minBaths") Integer minBaths,
+                        @org.springframework.data.repository.query.Param("propertyType") String propertyType);
 
         @org.springframework.data.jpa.repository.Query("SELECT SUM(p.priceAmount) FROM Property p WHERE p.owner.id = :ownerId AND p.status = 'Rented'")
         BigDecimal sumRevenueByOwnerId(@org.springframework.data.repository.query.Param("ownerId") Long ownerId);

@@ -39,7 +39,6 @@ public class RoommateService {
         .genderPreference(request.getGenderPreference())
         .smoking(request.getSmoking())
         .pets(request.getPets())
-        .pets(request.getPets())
         .occupation(request.getOccupation())
         .latitude(request.getLatitude())
         .longitude(request.getLongitude())
@@ -49,11 +48,40 @@ public class RoommateService {
     return mapToDto(savedPost);
   }
 
-  public List<RoommatePostDto> searchPosts(String location, Double minBudget, Double maxBudget,
+  public List<RoommatePostDto> searchPosts(Long currentUserId, String location, Double minBudget, Double maxBudget,
       String genderPreference) {
-    return roommatePostRepository.searchPosts(location, minBudget, maxBudget, genderPreference)
-        .stream()
-        .map(this::mapToDto)
+    List<RoommatePost> posts = roommatePostRepository.searchPosts(location, minBudget, maxBudget, genderPreference);
+
+    // If no user is logged in, just return raw results
+    if (currentUserId == null) {
+      return posts.stream()
+          .map(this::mapToDto)
+          .collect(Collectors.toList());
+    }
+
+    // Get current user's post preferences for matching
+    List<RoommatePost> myPosts = roommatePostRepository.findByUserId(currentUserId);
+    RoommatePost myPost = myPosts.isEmpty() ? null : myPosts.get(0);
+
+    return posts.stream()
+        .map(post -> {
+          RoommatePostDto dto = mapToDto(post);
+          // Calculate score if we have a baseline and it's not our own post
+          if (myPost != null && !post.getUser().getId().equals(currentUserId)) {
+            dto.setMatchScore(calculateMatchScore(myPost, post));
+          }
+          return dto;
+        })
+        .sorted((p1, p2) -> {
+          // Sort by match score descending, nulls last
+          if (p1.getMatchScore() == null && p2.getMatchScore() == null)
+            return 0;
+          if (p1.getMatchScore() == null)
+            return 1;
+          if (p2.getMatchScore() == null)
+            return -1;
+          return p2.getMatchScore().compareTo(p1.getMatchScore());
+        })
         .collect(Collectors.toList());
   }
 
@@ -167,9 +195,10 @@ public class RoommateService {
   private int calculateMatchScore(RoommatePost myPost, RoommatePost otherPost) {
     int score = 0;
 
-    // Location (City level mostly) - Simple string match for now
+    // Location (City level mostly) - Partial string match
     if (myPost.getLocation() != null && otherPost.getLocation() != null &&
-        myPost.getLocation().equalsIgnoreCase(otherPost.getLocation())) {
+        (myPost.getLocation().toLowerCase().contains(otherPost.getLocation().toLowerCase()) ||
+            otherPost.getLocation().toLowerCase().contains(myPost.getLocation().toLowerCase()))) {
       score += 30;
     }
 
