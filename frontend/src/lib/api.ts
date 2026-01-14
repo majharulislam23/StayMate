@@ -344,6 +344,17 @@ export const userApi = {
         return response.data
     },
 
+    uploadProfilePicture: async (file: File): Promise<User> => {
+        const formData = new FormData()
+        formData.append("file", file)
+        const response = await api.post<User>("/api/users/photo", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        })
+        return response.data
+    },
+
     deleteAccount: async (): Promise<{ message: string }> => {
         const response = await api.delete<{ message: string }>(
             "/api/users/profile",
@@ -970,6 +981,31 @@ export const propertyApi = {
         )
         return response.data
     },
+    updateProperty: async (id: number, data: any, files?: File[]): Promise<any> => {
+        const formData = new FormData()
+
+        // Append JSON data as a Blob with application/json type
+        formData.append(
+            "data",
+            new Blob([JSON.stringify(data)], {
+                type: "application/json",
+            }),
+        )
+
+        // Append files if provided
+        if (files && files.length > 0) {
+            files.forEach((file) => {
+                formData.append("files", file)
+            })
+        }
+
+        const response = await api.put<any>(`/api/properties/${id}`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        })
+        return response.data
+    },
     deleteProperty: async (id: number): Promise<void> => {
         await api.delete(`/api/properties/${id}`)
     },
@@ -997,6 +1033,8 @@ export const roommateApi = {
     getById: (id: number) =>
         api.get(`/api/roommates/${id}`).then((res) => res.data),
     create: (data: any) =>
+        api.post("/api/roommates", data).then((res) => res.data),
+    createPost: (data: any) => // Alias for backward compatibility with new code
         api.post("/api/roommates", data).then((res) => res.data),
     update: (id: number, data: any) =>
         api.put(`/api/roommates/${id}`, data).then((res) => res.data),
@@ -1109,5 +1147,7 @@ export const auditApi = {
         return response.data
     },
 }
+
+
 
 export default api

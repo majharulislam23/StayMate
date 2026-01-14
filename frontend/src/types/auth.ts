@@ -230,10 +230,15 @@ export interface AdminDashboardDTO {
     openMaintenanceRequests: number
     todayAuditLogs: number
 
+    // Emergency & Safety
+    totalEmergencyRoomsAvailable?: number
+    bannedUsersCount?: number
+
     // Optional / Computed on Frontend or Future
-    recentFraudAlerts?: Report[] // Can likely remove this if recentFraudEvents is used
+    recentFraudAlerts?: FraudEvent[]
     pendingVerificationUsers?: User[]
     occupancyAnalytics?: any[]
+    propertyTypeStats?: { name: string; value: number }[]
     locationOccupancyStats?: { name: string; occupied: number; vacant: number }[]
 }
 

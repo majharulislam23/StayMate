@@ -169,7 +169,6 @@ export default function Sidebar() {
                             name: "Booking Requests",
                             href: "/dashboard/bookings",
                             icon: <CalendarDays className="w-5 h-5" />,
-                            badge: 2,
                         },
                         {
                             name: "Inquiries",
