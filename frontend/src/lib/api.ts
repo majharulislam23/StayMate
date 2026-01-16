@@ -801,6 +801,7 @@ export const landlordApi = {
         return response.data
     },
 
+
     toggleSeatAvailability: async (seatId: number): Promise<void> => {
         await api.patch(`/api/landlord/seats/${seatId}/availability`)
     },
@@ -824,6 +825,8 @@ export const landlordApi = {
         return response.data
     },
 }
+
+
 
 // Application API
 export const applicationApi = {
@@ -929,6 +932,10 @@ export const propertyApi = {
     },
     getMyProperties: async (): Promise<any[]> => {
         const response = await api.get<any[]>("/api/properties/my-properties")
+        return response.data
+    },
+    getMyPropertyDetails: async (id: number): Promise<any> => {
+        const response = await api.get<any>(`/api/properties/my-properties/${id}`)
         return response.data
     },
     searchProperties: async (params: {
@@ -1149,5 +1156,35 @@ export const auditApi = {
 }
 
 
+
+// Support API
+export const supportApi = {
+    createTicket: async (data: any) => {
+        const response = await api.post("/api/support", data)
+        return response.data
+    },
+    getMyTickets: async () => {
+        const response = await api.get("/api/support/my-tickets")
+        return response.data
+    },
+    getTicket: async (id: number) => {
+        const response = await api.get(`/api/support/${id}`)
+        return response.data
+    },
+    reply: async (id: number, message: string) => {
+        const response = await api.post(`/api/support/${id}/reply`, { message })
+        return response.data
+    },
+    getAllTicketsAdmin: async () => {
+        const response = await api.get("/api/support/admin/all")
+        return response.data
+    },
+    updateStatus: async (id: number, status: string) => {
+        const response = await api.put(`/api/support/admin/${id}/status`, null, {
+            params: { status }
+        })
+        return response.data
+    }
+}
 
 export default api
