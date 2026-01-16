@@ -47,9 +47,10 @@ export default function SavedPage() {
 
       setSavedProperties(properties || [])
       setSavedRoommates(roommates || [])
-    } catch (error) {
-      console.error("Failed to fetch saved items:", error)
-      toast.error("Failed to load saved items")
+    } catch (error: any) {
+      console.error(error)
+      const message = error.response?.data?.message || "Failed to load saved items"
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }

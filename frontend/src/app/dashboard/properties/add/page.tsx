@@ -181,9 +181,10 @@ export default function AddPropertyPage() {
 
       toast.success("Property listed successfully!")
       router.push("/dashboard")
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      toast.error("Failed to create property. Please try again.")
+      const message = error.response?.data?.message || "Failed to create property. Please try again."
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }

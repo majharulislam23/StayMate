@@ -8,7 +8,7 @@ import { format } from "date-fns"
 import { Calendar, Mail, MapPin, Phone, Shield } from "lucide-react"
 
 export default function ProfilePage() {
-  const { user, isHouseOwner } = useAuth()
+  const { user, isHouseOwner, refreshUser } = useAuth()
   const { isDark } = useTheme()
 
   if (!user) return null
@@ -44,7 +44,10 @@ export default function ProfilePage() {
                       // Start upload
                       const { userApi } = await import("@/lib/api")
                       await userApi.uploadProfilePicture(file)
-                      window.location.reload()
+                      if (refreshUser) {
+                        await refreshUser()
+                      }
+                      // Minimal feedback, page doesn't need full reload
                     } catch (error) {
                       console.error("Failed to upload profile picture", error)
                       alert("Failed to upload profile picture")

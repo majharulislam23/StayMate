@@ -4,7 +4,8 @@ import DashboardLayout from "@/components/DashboardLayout"
 import { useAuth } from "@/context/AuthContext"
 import { useTheme } from "@/context/ThemeContext"
 import { roommateApi } from "@/lib/api"
-import { Briefcase, Calendar, Cigarette, Dog, DollarSign, Loader2, MapPin, User } from "lucide-react"
+import { CleanlinessLevel, SleepSchedule } from "@/types/auth"
+import { Briefcase, Calendar, Cigarette, Dog, DollarSign, Heart, Loader2, MapPin, Moon, Sparkles, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "react-hot-toast"
@@ -23,7 +24,11 @@ export default function CreateRoommatePostPage() {
     genderPreference: "ANY",
     smoking: false,
     pets: false,
-    occupation: ""
+    occupation: "",
+    cleanliness: "MODERATE" as CleanlinessLevel,
+    sleepSchedule: "IRREGULAR" as SleepSchedule,
+    personalityTags: "",
+    interests: ""
   })
 
   // Redirect if not logged in
@@ -41,13 +46,16 @@ export default function CreateRoommatePostPage() {
         ...formData,
         budget: Number(formData.budget),
         latitude: 0, // Should use geocoding in real app
-        longitude: 0
+        longitude: 0,
+        personalityTags: formData.personalityTags.split(",").map(t => t.trim()).filter(Boolean),
+        interests: formData.interests.split(",").map(t => t.trim()).filter(Boolean)
       })
       toast.success("Roommate profile created! Good luck finding a match.")
       router.push("/roommates")
     } catch (error: any) {
       console.error("Failed to create post", error)
-      toast.error(error?.response?.data?.message || "Failed to create profile")
+      const message = error.response?.data?.message || "Failed to create profile"
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -146,6 +154,77 @@ export default function CreateRoommatePostPage() {
                 </div>
               </div>
 
+              {/* AI Matching - Habits & Lifestyle */}
+              <div className="space-y-6 pt-4 border-t border-dashed border-slate-200 dark:border-white/10">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-5 h-5 text-primary-500" />
+                  <h3 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-900"}`}>AI Compatibility Details</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Cleanliness */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 opacity-70">Cleanliness Level</label>
+                    <div className={`p-3 rounded-xl border ${isDark ? "bg-dark-900 border-white/10" : "bg-slate-50 border-slate-200"}`}>
+                      <select
+                        value={formData.cleanliness}
+                        onChange={e => setFormData({ ...formData, cleanliness: e.target.value as CleanlinessLevel })}
+                        className="bg-transparent outline-none w-full"
+                      >
+                        <option value="MESSY">Relaxed / Messy</option>
+                        <option value="MODERATE">Moderate</option>
+                        <option value="NEAT_FREAK">Neat Freak</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Sleep Schedule */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 opacity-70">Sleep Schedule</label>
+                    <div className={`flex items-center gap-3 p-3 rounded-xl border ${isDark ? "bg-dark-900 border-white/10" : "bg-slate-50 border-slate-200"}`}>
+                      <Moon className="w-5 h-5 opacity-50" />
+                      <select
+                        value={formData.sleepSchedule}
+                        onChange={e => setFormData({ ...formData, sleepSchedule: e.target.value as SleepSchedule })}
+                        className="bg-transparent outline-none w-full"
+                      >
+                        <option value="EARLY_BIRD">Early Bird (Morning Person)</option>
+                        <option value="NIGHT_OWL">Night Owl (Late Riser)</option>
+                        <option value="IRREGULAR">Flexible / Irregular</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tags & Interests */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 opacity-70">Personality Traits (Comma separated)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Introvert, Gamer, Musician, Quiet"
+                      value={formData.personalityTags}
+                      onChange={e => setFormData({ ...formData, personalityTags: e.target.value })}
+                      className={`w-full p-3 rounded-xl border outline-none ${isDark ? "bg-dark-900 border-white/10" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 opacity-70">Interests & Hobbies (Comma separated)</label>
+                    <div className={`flex items-center gap-3 p-3 rounded-xl border ${isDark ? "bg-dark-900 border-white/10" : "bg-slate-50 border-slate-200"}`}>
+                      <Heart className="w-5 h-5 opacity-50" />
+                      <input
+                        type="text"
+                        placeholder="e.g. Hiking, Cooking, Tech, Movies"
+                        value={formData.interests}
+                        onChange={e => setFormData({ ...formData, interests: e.target.value })}
+                        className="flex-1 bg-transparent outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Preferences */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Gender */}
@@ -169,8 +248,8 @@ export default function CreateRoommatePostPage() {
                 <div
                   onClick={() => setFormData({ ...formData, smoking: !formData.smoking })}
                   className={`p-3 rounded-xl border cursor-pointer transition-all ${formData.smoking
-                      ? "bg-primary-500/10 border-primary-500 text-primary-500"
-                      : isDark ? "bg-dark-900 border-white/10 hover:border-white/20" : "bg-slate-50 border-slate-200 hover:border-slate-300"
+                    ? "bg-primary-500/10 border-primary-500 text-primary-500"
+                    : isDark ? "bg-dark-900 border-white/10 hover:border-white/20" : "bg-slate-50 border-slate-200 hover:border-slate-300"
                     }`}
                 >
                   <label className="block text-xs font-bold uppercase mb-2 opacity-70 pointer-events-none">Smoking</label>
@@ -184,8 +263,8 @@ export default function CreateRoommatePostPage() {
                 <div
                   onClick={() => setFormData({ ...formData, pets: !formData.pets })}
                   className={`p-3 rounded-xl border cursor-pointer transition-all ${formData.pets
-                      ? "bg-primary-500/10 border-primary-500 text-primary-500"
-                      : isDark ? "bg-dark-900 border-white/10 hover:border-white/20" : "bg-slate-50 border-slate-200 hover:border-slate-300"
+                    ? "bg-primary-500/10 border-primary-500 text-primary-500"
+                    : isDark ? "bg-dark-900 border-white/10 hover:border-white/20" : "bg-slate-50 border-slate-200 hover:border-slate-300"
                     }`}
                 >
                   <label className="block text-xs font-bold uppercase mb-2 opacity-70 pointer-events-none">Pets</label>
