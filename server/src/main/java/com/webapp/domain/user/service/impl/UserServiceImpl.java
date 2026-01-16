@@ -142,7 +142,12 @@ public class UserServiceImpl implements UserService {
                 .map(existingUser -> {
                     existingUser.setFirstName(firstName);
                     existingUser.setLastName(lastName);
-                    existingUser.setProfilePictureUrl(profilePictureUrl);
+                    // Only overwrite profile picture if it's not a locally uploaded one (checking
+                    // key signature)
+                    if (existingUser.getProfilePictureUrl() == null
+                            || !existingUser.getProfilePictureUrl().contains("/api/uploads/")) {
+                        existingUser.setProfilePictureUrl(profilePictureUrl);
+                    }
                     existingUser.setLastLoginAt(LocalDateTime.now());
                     return userRepository.save(existingUser);
                 })
@@ -577,5 +582,15 @@ public class UserServiceImpl implements UserService {
         }
 
         return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User updateProfilePicture(Long userId, String profilePictureUrl) {
+        User user = getUserById(userId);
+        user.setProfilePictureUrl(profilePictureUrl);
+        User savedUser = userRepository.save(user);
+        userRepository.flush(); // Ensure immediate write
+        return savedUser;
     }
 }
