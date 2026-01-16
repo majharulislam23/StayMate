@@ -17,8 +17,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.webapp.auth.security.UserPrincipal;
+import com.webapp.domain.file.service.FileStorageService;
 import com.webapp.domain.user.dto.PublicUserDto;
 import com.webapp.domain.user.dto.UpdateProfileRequest;
 import com.webapp.domain.user.dto.UserDto;
@@ -46,6 +48,7 @@ public class UserController {
         private final UserService userService;
         private final UserMapper userMapper;
         private final UserRepository userRepository;
+        private final FileStorageService fileStorageService;
 
         @Operation(summary = "Get current user profile")
         @ApiResponses(value = {
@@ -78,6 +81,17 @@ public class UserController {
                                 request.getCity(),
                                 request.getProfilePictureUrl());
 
+                return ResponseEntity.ok(userMapper.toDto(updatedUser));
+        }
+
+        @Operation(summary = "Upload profile picture")
+        @PostMapping("/photo")
+        public ResponseEntity<UserDto> uploadProfilePicture(
+                        @RequestParam("file") MultipartFile file,
+                        @Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal currentUser) {
+                // storeFile now returns the full MinIO URL
+                String fileUrl = fileStorageService.storeFile(file);
+                User updatedUser = userService.updateProfilePicture(currentUser.getId(), fileUrl);
                 return ResponseEntity.ok(userMapper.toDto(updatedUser));
         }
 

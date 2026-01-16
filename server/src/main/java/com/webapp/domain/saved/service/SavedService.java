@@ -28,17 +28,19 @@ public class SavedService {
   private final UserService userService;
   private final PropertyRepository propertyRepository;
   private final RoommatePostRepository roommatePostRepository;
+  private final com.webapp.domain.property.mapper.PropertyMapper propertyMapper;
+  private final com.webapp.domain.roommate.RoommatePostMapper roommatePostMapper;
 
   // Saved Properties
 
   @Transactional(readOnly = true)
-  public List<Property> getSavedProperties(Long userId) {
+  public List<com.webapp.domain.property.dto.PropertyResponse> getSavedProperties(Long userId) {
     return savedPropertyRepository.findByUserIdOrderBySavedAtDesc(userId).stream()
         .map(saved -> {
           Property property = saved.getProperty();
-          property.setSaved(true);
-          // Set transient or DTO field if it exists, or handling is done in frontend
-          return property;
+          com.webapp.domain.property.dto.PropertyResponse response = propertyMapper.toResponse(property);
+          response.setSaved(true);
+          return response;
         })
         .collect(Collectors.toList());
   }
@@ -74,9 +76,14 @@ public class SavedService {
   // Saved Roommates
 
   @Transactional(readOnly = true)
-  public List<RoommatePost> getSavedRoommates(Long userId) {
+  public List<com.webapp.domain.roommate.RoommatePostDto> getSavedRoommates(Long userId) {
     return savedRoommateRepository.findByUserIdOrderBySavedAtDesc(userId).stream()
-        .map(SavedRoommate::getRoommatePost)
+        .map(saved -> {
+          RoommatePost post = saved.getRoommatePost();
+          com.webapp.domain.roommate.RoommatePostDto response = roommatePostMapper.toDto(post);
+          response.setSaved(true);
+          return response;
+        })
         .collect(Collectors.toList());
   }
 

@@ -2,11 +2,13 @@ package com.webapp.domain.verification.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.webapp.domain.notification.service.SmsService;
 import com.webapp.domain.user.entity.User;
 import com.webapp.domain.user.repository.UserRepository;
 import com.webapp.domain.verification.dto.VerificationStatusResponse;
@@ -21,6 +23,7 @@ public class VerificationService {
 
   private final VerificationRepository verificationRepository;
   private final UserRepository userRepository;
+  private final SmsService smsService;
 
   @Transactional(readOnly = true)
   public List<VerificationRequest> getPendingRequests() {
@@ -36,8 +39,6 @@ public class VerificationService {
   public VerificationRequest submitRequest(@NonNull Long userId, String documentUrl, String documentType) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new RuntimeException("User not found"));
-
-    // precise duplicate check logic can be added here
 
     VerificationRequest request = VerificationRequest.builder()
         .user(user)
@@ -56,11 +57,7 @@ public class VerificationService {
     request.setStatus(VerificationRequest.VerificationStatus.APPROVED);
     request.setUpdatedAt(LocalDateTime.now());
 
-    // Update user status
     User user = request.getUser();
-    // Assuming there's a field for verification or we just rely on this request
-    // history
-    // user.setIdentityVerified(true); // If this field exists
     java.util.Objects.requireNonNull(userRepository.save(user));
 
     return java.util.Objects.requireNonNull(verificationRepository.save(request));
@@ -85,14 +82,13 @@ public class VerificationService {
 
     boolean profileComplete = isProfileComplete(user);
 
-    // Check for existing document verification request
     String documentStatus = "NOT_UPLOADED";
     String rejectionReason = null;
 
-    List<VerificationRequest> requests = verificationRepository.findByUserId(userId);
-    // Get latest request
-    if (!requests.isEmpty()) {
-      VerificationRequest latest = requests.get(requests.size() - 1);
+    Optional<VerificationRequest> latestRequest = verificationRepository.findTopByUserIdOrderByCreatedAtDesc(userId);
+
+    if (latestRequest.isPresent()) {
+      VerificationRequest latest = latestRequest.get();
       documentStatus = latest.getStatus().name();
       if (latest.getStatus() == VerificationRequest.VerificationStatus.REJECTED) {
         rejectionReason = latest.getRejectionReason();
@@ -119,13 +115,27 @@ public class VerificationService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new RuntimeException("User not found"));
 
-    user.setPhoneNumber(phoneNumber);
-    // Generate 6 digit OTP
-    String otp = String.valueOf((int) (Math.random() * 900000) + 100000);
-    user.setPhoneOtp(otp);
+    // Check if phone number is used by ANOTHER user
+    java.util.Optional<User> existingUser = userRepository.findByPhoneNumber(phoneNumber);
+    if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
+      throw new RuntimeException("This phone number is already verified by another user.");
+    }
 
-    userRepository.save(user);
-    return otp;
+    try {
+      user.setPhoneNumber(phoneNumber);
+      String otp = String.valueOf((int) (Math.random() * 900000) + 100000);
+      user.setPhoneOtp(otp);
+
+      userRepository.save(user);
+
+      smsService.sendSms(phoneNumber, "Your StayMate Verification Code is: " + otp);
+
+      return otp;
+    } catch (Exception e) {
+      // Log the FULL stack trace
+      e.printStackTrace();
+      throw new RuntimeException("Error initiating phone verification: " + e.getMessage(), e);
+    }
   }
 
   @Transactional
@@ -135,10 +145,32 @@ public class VerificationService {
 
     if (user.getPhoneOtp() != null && user.getPhoneOtp().equals(otp)) {
       user.setPhoneVerified(true);
-      user.setPhoneOtp(null); // Clear OTP
+      user.setPhoneOtp(null);
       userRepository.save(user);
       return true;
     }
     return false;
+  }
+
+  @Transactional(readOnly = true)
+  public void validateUserVerification(Long userId) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+    boolean profileComplete = isProfileComplete(user);
+    boolean emailVerified = user.isEmailVerified();
+    boolean phoneVerified = user.isPhoneVerified();
+
+    boolean documentVerified = false;
+    Optional<VerificationRequest> latestRequest = verificationRepository.findTopByUserIdOrderByCreatedAtDesc(userId);
+    if (latestRequest.isPresent()
+        && latestRequest.get().getStatus() == VerificationRequest.VerificationStatus.APPROVED) {
+      documentVerified = true;
+    }
+
+    if (!emailVerified || !phoneVerified || !profileComplete || !documentVerified) {
+      throw new RuntimeException(
+          "User is not fully verified. Please complete your profile, verify email/phone, and upload identity documents.");
+    }
   }
 }

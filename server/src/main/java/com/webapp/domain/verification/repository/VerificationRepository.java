@@ -15,4 +15,6 @@ public interface VerificationRepository extends JpaRepository<VerificationReques
   List<VerificationRequest> findByUserId(Long userId);
 
   Optional<VerificationRequest> findByUserIdAndStatus(Long userId, VerificationRequest.VerificationStatus status);
+
+  Optional<VerificationRequest> findTopByUserIdOrderByCreatedAtDesc(Long userId);
 }
