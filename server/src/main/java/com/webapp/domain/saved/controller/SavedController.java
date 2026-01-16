@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.webapp.auth.security.UserPrincipal;
-import com.webapp.domain.property.entity.Property;
-import com.webapp.domain.roommate.RoommatePost;
 import com.webapp.domain.saved.service.SavedService;
 
 import lombok.RequiredArgsConstructor;
@@ -29,7 +27,8 @@ public class SavedController {
   // Properties
 
   @GetMapping("/properties")
-  public ResponseEntity<List<Property>> getSavedProperties(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+  public ResponseEntity<List<com.webapp.domain.property.dto.PropertyResponse>> getSavedProperties(
+      @AuthenticationPrincipal UserPrincipal userPrincipal) {
     return ResponseEntity.ok(savedService.getSavedProperties(userPrincipal.getId()));
   }
 
@@ -56,7 +55,8 @@ public class SavedController {
   // Roommates
 
   @GetMapping("/roommates")
-  public ResponseEntity<List<RoommatePost>> getSavedRoommates(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+  public ResponseEntity<List<com.webapp.domain.roommate.RoommatePostDto>> getSavedRoommates(
+      @AuthenticationPrincipal UserPrincipal userPrincipal) {
     return ResponseEntity.ok(savedService.getSavedRoommates(userPrincipal.getId()));
   }
 

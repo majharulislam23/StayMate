@@ -100,4 +100,6 @@ public interface UserService extends UserDetailsService {
         void changePassword(Long userId, String oldPassword, String newPassword);
 
         User toggleNotificationPreference(Long userId, String type, boolean enabled);
+
+        User updateProfilePicture(Long userId, String profilePictureUrl);
 }

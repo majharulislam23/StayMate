@@ -1,17 +1,18 @@
 package com.webapp.domain.user.controller;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.webapp.auth.security.UserPrincipal;
 import com.webapp.domain.user.service.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -33,7 +34,6 @@ public class AdminController {
     private final com.webapp.domain.verification.service.VerificationService verificationService;
     private final com.webapp.domain.report.service.ReportService reportService;
     private final com.webapp.domain.setting.service.SystemSettingService settingService;
-    private final com.webapp.domain.booking.repository.BookingRepository bookingRepository;
     // bookingRepository is declared below but needs to be in constructor/Lombok
     // args
     // We will rely on Lombok @RequiredArgsConstructor but need to remove the field
@@ -42,20 +42,9 @@ public class AdminController {
 
     // ==================== Dashboard Stats ====================
 
-    @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> getDashboardStats() {
-        log.info("Admin requesting dashboard stats");
-
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("totalUsers", userService.countUsers());
-        stats.put("totalHouseOwners", userService.countHouseOwners());
-        stats.put("totalRegularUsers", userService.countRegularUsers());
-        stats.put("totalAdmins", userService.countAdmins());
-        stats.put("activeUsers", userService.countActiveUsers());
-        stats.put("pendingVerifications", userService.countUnverifiedUsers());
-
-        return ResponseEntity.ok(stats);
-    }
+    // ==================== Dashboard Stats ====================
+    // MOVED TO: com.webapp.domain.admin.controller.AdminDashboardController
+    // to resolve ambiguous mapping error.
 
     // ==================== Property Management ====================
 
@@ -66,15 +55,19 @@ public class AdminController {
     }
 
     @PutMapping("/properties/{id}/approve")
-    public ResponseEntity<com.webapp.domain.property.dto.PropertyResponse> approveProperty(@PathVariable Long id) {
+    public ResponseEntity<com.webapp.domain.property.dto.PropertyResponse> approveProperty(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
         log.info("Admin approving property {}", id);
-        return ResponseEntity.ok(propertyService.updatePropertyStatus(id, "Active"));
+        return ResponseEntity.ok(propertyService.updatePropertyStatus(id, "Approved", currentUser.getId()));
     }
 
     @PutMapping("/properties/{id}/reject")
-    public ResponseEntity<com.webapp.domain.property.dto.PropertyResponse> rejectProperty(@PathVariable Long id) {
+    public ResponseEntity<com.webapp.domain.property.dto.PropertyResponse> rejectProperty(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
         log.info("Admin rejecting property {}", id);
-        return ResponseEntity.ok(propertyService.updatePropertyStatus(id, "Rejected"));
+        return ResponseEntity.ok(propertyService.updatePropertyStatus(id, "Rejected", currentUser.getId()));
     }
 
     // ==================== Analytics (Stub) ====================
