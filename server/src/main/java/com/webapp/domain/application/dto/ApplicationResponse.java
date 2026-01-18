@@ -20,6 +20,10 @@ public class ApplicationResponse {
     private String senderName;
     private String senderEmail;
     private String senderProfilePictureUrl;
+    private Integer senderAge;
+    private String senderGender;
+    private String senderBio;
+    private Integer matchScore;
 
     private Long receiverId;
     private String receiverName;

@@ -19,6 +19,10 @@ public class ApplicationMapper {
                 .senderName(app.getSender().getFullName())
                 .senderEmail(app.getSender().getEmail())
                 .senderProfilePictureUrl(app.getSender().getProfilePictureUrl())
+                .senderGender(app.getSender().getGender())
+                .senderBio(app.getSender().getBio())
+                .senderAge(null) // Age not stored in User entity
+                .matchScore(null) // Calculated by AI service if triggered
                 .receiverId(app.getReceiver().getId())
                 .receiverName(app.getReceiver().getFullName())
                 .propertyId(app.getProperty() != null ? app.getProperty().getId() : null)

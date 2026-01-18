@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webapp.domain.ai.dto.AiMatchRecommendation;
+import com.webapp.domain.roommate.RoommatePost;
+import com.webapp.domain.roommate.RoommatePostRepository;
 import com.webapp.domain.user.entity.User;
 import com.webapp.domain.user.repository.UserRepository;
 
@@ -23,16 +25,18 @@ public class MatchingService {
 
     private final AiService aiService;
     private final UserRepository userRepository;
+    private final RoommatePostRepository roommatePostRepository;
     private final ObjectMapper objectMapper;
 
     /**
-     * Findings matches for the given user using a hybrid approach: 1. Hard filters (City, Role) via SQL (Repository) 2.
+     * Findings matches for the given user using a hybrid approach: 1. Hard filters
+     * (City, Role) via SQL (Repository) 2.
      * AI Scoring of top candidates
      */
     public List<AiMatchRecommendation> findMatches(User targetUser) {
-        if (!aiService.checkHealth()) {
-            log.warn("AI Service is down. Skipping AI matching.");
-            return Collections.emptyList();
+        boolean aiAvailable = aiService.checkHealth();
+        if (!aiAvailable) {
+            log.warn("AI Service is down. Using fallback scoring.");
         }
 
         // Step 1: Candidate Selection (Hard Filters)
@@ -51,10 +55,10 @@ public class MatchingService {
 
         List<AiMatchRecommendation> recommendations = new ArrayList<>();
 
-        // Step 2: AI Scoring
+        // Step 2: AI Scoring (or fallback)
         for (User candidate : candidates) {
             String prompt = buildPrompt(targetUser, candidate);
-            String aiResponse = aiService.generateResponse(prompt);
+            String aiResponse = aiAvailable ? aiService.generateResponse(prompt) : null;
 
             if (aiResponse != null) {
                 try {
@@ -76,7 +80,12 @@ public class MatchingService {
 
                 } catch (Exception e) {
                     log.error("Failed to parse AI response for match: {}", e.getMessage());
+                    // Add fallback for parse failures as well
+                    recommendations.add(buildFallbackRecommendation(targetUser, candidate));
                 }
+            } else {
+                // AI unavailable or failed for this candidate, use fallback
+                recommendations.add(buildFallbackRecommendation(targetUser, candidate));
             }
         }
 
@@ -113,10 +122,10 @@ public class MatchingService {
         return String.format(
                 """
                         You are an expert roommate matcher. Analyze the compatibility between these two users based on their profiles.
-                        
+
                         User A: %s
                         User B: %s
-                        
+
                         Respond strictly in JSON format with two fields: 'score' (integer 0-100) and 'explanation' (string, max 2 sentences).
                         Example: {"score": 85, "explanation": "Both value cleanliness and have similar schedules."}
                         Avoid markdown or additional text.
@@ -133,6 +142,73 @@ public class MatchingService {
         // here
         // For now, Bio is the main source of personality
         return sb.toString();
+    }
+
+    /**
+     * Builds a fallback recommendation when AI is unavailable or fails.
+     * Uses heuristic scoring if posts exist, otherwise 50.
+     */
+    private AiMatchRecommendation buildFallbackRecommendation(User targetUser, User candidate) {
+        int score = 50;
+
+        try {
+            List<RoommatePost> targetPosts = roommatePostRepository.findByUserId(targetUser.getId());
+            List<RoommatePost> candidatePosts = roommatePostRepository.findByUserId(candidate.getId());
+
+            if (!targetPosts.isEmpty() && !candidatePosts.isEmpty()) {
+                score = calculateHeuristicScore(targetPosts.get(0), candidatePosts.get(0));
+            }
+        } catch (Exception e) {
+            log.warn("Heuristic scoring failed, using default 50: {}", e.getMessage());
+        }
+
+        return AiMatchRecommendation.builder()
+                .userId(candidate.getId())
+                .userName(candidate.getFullName())
+                .compatibilityScore(score)
+                .explanation(score > 60 ? "Based on budget and lifestyle preferences."
+                        : "Potential match based on location.")
+                .matchType(determineMatchType(score))
+                .build();
+    }
+
+    private int calculateHeuristicScore(RoommatePost p1, RoommatePost p2) {
+        int score = 50; // Base score (Same City)
+
+        // 1. Budget Compatibility (Weight: 20)
+        // If budgets are within 20% of each other
+        if (p1.getBudget() != null && p2.getBudget() != null) {
+            double diff = Math.abs(p1.getBudget() - p2.getBudget());
+            double avg = (p1.getBudget() + p2.getBudget()) / 2.0;
+            if (avg > 0 && diff <= avg * 0.2) {
+                score += 20;
+            } else if (avg > 0 && diff <= avg * 0.4) {
+                score += 10;
+            }
+        }
+
+        // 2. Smoking (Weight: 10)
+        if (p1.getSmoking() != null && p2.getSmoking() != null && p1.getSmoking().equals(p2.getSmoking())) {
+            score += 10;
+        }
+
+        // 3. Pets (Weight: 10)
+        if (p1.getPets() != null && p2.getPets() != null && p1.getPets().equals(p2.getPets())) {
+            score += 10;
+        }
+
+        // 4. Cleanliness (Weight: 5)
+        if (p1.getCleanliness() != null && p2.getCleanliness() != null && p1.getCleanliness() == p2.getCleanliness()) {
+            score += 5;
+        }
+
+        // 5. Sleep Schedule (Weight: 5)
+        if (p1.getSleepSchedule() != null && p2.getSleepSchedule() != null
+                && p1.getSleepSchedule() == p2.getSleepSchedule()) {
+            score += 5;
+        }
+
+        return Math.min(score, 99);
     }
 
     private String extractJson(String response) {

@@ -175,14 +175,14 @@
     }
 
     .dark .glass-card {
-        @apply bg-dark-900/60 border-white/5;
-        @apply hover:bg-dark-800/60 hover:border-white/10;
+        @apply bg-dark-900/90 border-white/5;
+        @apply hover:bg-dark-800/90 hover:border-white/10;
         @apply shadow-xl shadow-black/20;
     }
 
     :root:not(.dark) .glass-card {
-        @apply bg-white/70 border-white/40 shadow-lg shadow-primary-500/5;
-        @apply hover:bg-white/80 hover:shadow-xl hover:shadow-primary-500/10;
+        @apply bg-white/90 border-white/40 shadow-lg shadow-primary-500/5;
+        @apply hover:bg-white/95 hover:shadow-xl hover:shadow-primary-500/10;
     }
 
     /* Premium Glass Panel (for Sidebars, Modals) */
@@ -191,11 +191,11 @@
     }
 
     .dark .glass-panel {
-        @apply bg-dark-900/70 border-white/5;
+        @apply bg-dark-900/90 border-white/5;
     }
 
     :root:not(.dark) .glass-panel {
-        @apply bg-white/70 border-white/20;
+        @apply bg-white/90 border-white/20;
     }
 
     /* Glass Input */
@@ -205,13 +205,13 @@
     }
 
     .dark .glass-input {
-        @apply bg-dark-800/50 border-white/5 text-white placeholder-slate-500;
-        @apply focus:bg-dark-800/80 focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/50;
+        @apply bg-dark-800/85 border-white/5 text-white placeholder-slate-500;
+        @apply focus:bg-dark-800/95 focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/50;
     }
 
     :root:not(.dark) .glass-input {
-        @apply bg-white/50 border-slate-200/60 text-slate-900 placeholder-slate-400;
-        @apply focus:bg-white/80 focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20;
+        @apply bg-white/80 border-slate-200/60 text-slate-900 placeholder-slate-400;
+        @apply focus:bg-white/95 focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20;
     }
 
     /* Glass Button */

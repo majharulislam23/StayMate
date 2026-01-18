@@ -2,14 +2,15 @@
 
 import DashboardLayout from "@/components/DashboardLayout"
 import AnimatedCard from "@/components/common/AnimatedCard"
+import Avatar from "@/components/common/Avatar"
 import EmptyState from "@/components/common/EmptyState"
 import LoadingState from "@/components/common/LoadingState"
 import PageContainer from "@/components/common/PageContainer"
 import { useAuth } from "@/context/AuthContext"
 import { useTheme } from "@/context/ThemeContext"
-import apiClient from "@/lib/api"
+import apiClient, { messageApi } from "@/lib/api"
 import { motion } from "framer-motion"
-import { CheckCircle, Clock, FileText, User, XCircle } from "lucide-react"
+import { CheckCircle, Clock, FileText, MessageSquare, XCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
@@ -19,8 +20,13 @@ type Application = {
     senderId: number
     senderName: string
     senderProfilePictureUrl?: string
+    senderGender?: string
+    senderBio?: string
     receiverId: number
     receiverName: string
+    propertyId?: number
+    propertyTitle?: string
+    matchScore?: number
     status: "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED"
     message: string
     createdAt: string
@@ -71,6 +77,23 @@ export default function ApplicationsPage() {
         } catch (error) {
             console.error("Failed to update status:", error)
             toast.error("Failed to update application status")
+        }
+    }
+
+    const handleMessage = async (app: Application) => {
+        try {
+            // For received: recipient is Sender. For sent: recipient is Receiver.
+            const recipientId = activeTab === "received" ? app.senderId : app.receiverId
+            const recipientName = activeTab === "received" ? app.senderName : app.receiverName
+
+            const conversation = await messageApi.createConversation({
+                recipientId: recipientId,
+                initialMessage: `Hi ${recipientName.split(' ')[0]}, I'm reviewing your application for ${app.propertyTitle || 'roommate request'}...`
+            })
+            router.push(`/messages?conversation=${conversation.id}`)
+        } catch (error) {
+            console.error("Failed to start conversation:", error)
+            toast.error("Failed to start conversation")
         }
     }
 
@@ -132,12 +155,12 @@ export default function ApplicationsPage() {
                     <button
                         onClick={() => setActiveTab("received")}
                         className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${activeTab === "received"
-                                ? isDark
-                                    ? "bg-primary-500 text-white shadow-lg"
-                                    : "bg-white text-primary-600 shadow-md"
-                                : isDark
-                                    ? "text-slate-400 hover:text-white"
-                                    : "text-slate-600 hover:text-slate-900"
+                            ? isDark
+                                ? "bg-primary-500 text-white shadow-lg"
+                                : "bg-white text-primary-600 shadow-md"
+                            : isDark
+                                ? "text-slate-400 hover:text-white"
+                                : "text-slate-600 hover:text-slate-900"
                             }`}
                     >
                         Received {activeTab === "received" && applications.length > 0 && `(${applications.length})`}
@@ -145,12 +168,12 @@ export default function ApplicationsPage() {
                     <button
                         onClick={() => setActiveTab("sent")}
                         className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${activeTab === "sent"
-                                ? isDark
-                                    ? "bg-primary-500 text-white shadow-lg"
-                                    : "bg-white text-primary-600 shadow-md"
-                                : isDark
-                                    ? "text-slate-400 hover:text-white"
-                                    : "text-slate-600 hover:text-slate-900"
+                            ? isDark
+                                ? "bg-primary-500 text-white shadow-lg"
+                                : "bg-white text-primary-600 shadow-md"
+                            : isDark
+                                ? "text-slate-400 hover:text-white"
+                                : "text-slate-600 hover:text-slate-900"
                             }`}
                     >
                         Sent {activeTab === "sent" && applications.length > 0 && `(${applications.length})`}
@@ -176,8 +199,8 @@ export default function ApplicationsPage() {
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => router.push("/roommates")}
                                     className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${isDark
-                                            ? "bg-primary-500 hover:bg-primary-600 text-white"
-                                            : "bg-primary-600 hover:bg-primary-700 text-white"
+                                        ? "bg-primary-500 hover:bg-primary-600 text-white"
+                                        : "bg-primary-600 hover:bg-primary-700 text-white"
                                         }`}
                                 >
                                     Browse Roommates
@@ -199,38 +222,52 @@ export default function ApplicationsPage() {
                                 >
                                     <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
                                         <div className="flex items-start gap-4 flex-1">
-                                            <div
-                                                className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isDark ? "bg-white/10" : "bg-slate-100"
-                                                    }`}
-                                            >
-                                                {app.senderProfilePictureUrl ? (
-                                                    <img
-                                                        src={app.senderProfilePictureUrl}
-                                                        alt={activeTab === "received" ? app.senderName : app.receiverName}
-                                                        className="w-12 h-12 rounded-xl object-cover"
-                                                    />
-                                                ) : (
-                                                    <User className={`w-6 h-6 ${isDark ? "text-slate-400" : "text-slate-500"}`} />
-                                                )}
+                                            <div className="flex-shrink-0">
+                                                <Avatar
+                                                    name={activeTab === "received" ? app.senderName : app.receiverName}
+                                                    src={app.senderProfilePictureUrl}
+                                                    size="lg"
+                                                />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <h3
-                                                    className={`font-semibold text-lg mb-1 ${isDark ? "text-white" : "text-slate-900"
-                                                        }`}
-                                                >
-                                                    {activeTab === "received" ? app.senderName : app.receiverName}
-                                                </h3>
+                                                <div className="flex items-center justify-between">
+                                                    <h3
+                                                        className={`font-semibold text-lg mb-0.5 ${isDark ? "text-white" : "text-slate-900"
+                                                            }`}
+                                                    >
+                                                        {activeTab === "received" ? app.senderName : app.receiverName}
+                                                        {app.senderGender && <span className="ml-2 text-xs font-normal opacity-70">({app.senderGender})</span>}
+                                                        {app.matchScore && (
+                                                            <span className={`ml-2 text-xs px-2 py-0.5 rounded-full font-bold ${app.matchScore >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' :
+                                                                    app.matchScore >= 50 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400' :
+                                                                        'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
+                                                                }`}>
+                                                                {app.matchScore}% Match
+                                                            </span>
+                                                        )}
+                                                    </h3>
+                                                    {app.propertyTitle && (
+                                                        <span className={`text-xs px-2 py-1 rounded-full ${isDark ? "bg-slate-700 text-slate-300" : "bg-slate-200 text-slate-600"}`}>
+                                                            {app.propertyTitle}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <p
                                                     className={`text-sm mb-2 ${isDark ? "text-slate-400" : "text-slate-500"
                                                         }`}
                                                 >
                                                     {app.message || "No message provided"}
                                                 </p>
+                                                {app.senderBio && (
+                                                    <p className={`text-xs mb-2 italic ${isDark ? "text-slate-500" : "text-slate-400"}`}>
+                                                        "{app.senderBio}"
+                                                    </p>
+                                                )}
                                                 <p
                                                     className={`text-xs ${isDark ? "text-slate-500" : "text-slate-400"
                                                         }`}
                                                 >
-                                                    {new Date(app.createdAt).toLocaleDateString()}
+                                                    Applied on {new Date(app.createdAt).toLocaleDateString()}
                                                 </p>
                                             </div>
                                         </div>
@@ -243,6 +280,19 @@ export default function ApplicationsPage() {
                                                 {app.status}
                                             </span>
 
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => handleMessage(app)}
+                                                className={`p-2 rounded-full transition-colors ${isDark
+                                                    ? "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+                                                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+                                                    }`}
+                                                title="Message"
+                                            >
+                                                <MessageSquare className="w-4 h-4" />
+                                            </motion.button>
+
                                             {app.status === "PENDING" && activeTab === "received" && (
                                                 <div className="flex gap-2">
                                                     <motion.button
@@ -250,8 +300,8 @@ export default function ApplicationsPage() {
                                                         whileTap={{ scale: 0.95 }}
                                                         onClick={() => handleStatusUpdate(app.id, "ACCEPTED")}
                                                         className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors ${isDark
-                                                                ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                                                                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                            ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                                                            : "bg-emerald-600 hover:bg-emerald-700 text-white"
                                                             }`}
                                                     >
                                                         Accept
@@ -261,8 +311,8 @@ export default function ApplicationsPage() {
                                                         whileTap={{ scale: 0.95 }}
                                                         onClick={() => handleStatusUpdate(app.id, "REJECTED")}
                                                         className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors ${isDark
-                                                                ? "bg-white/10 hover:bg-white/20 text-slate-300"
-                                                                : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                                                            ? "bg-white/10 hover:bg-white/20 text-slate-300"
+                                                            : "bg-slate-100 hover:bg-slate-200 text-slate-600"
                                                             }`}
                                                     >
                                                         Reject
@@ -276,8 +326,8 @@ export default function ApplicationsPage() {
                                                     whileTap={{ scale: 0.95 }}
                                                     onClick={() => handleStatusUpdate(app.id, "CANCELLED")}
                                                     className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors ${isDark
-                                                            ? "bg-white/10 hover:bg-white/20 text-slate-300"
-                                                            : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                                                        ? "bg-white/10 hover:bg-white/20 text-slate-300"
+                                                        : "bg-slate-100 hover:bg-slate-200 text-slate-600"
                                                         }`}
                                                 >
                                                     Cancel
