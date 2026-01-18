@@ -1187,4 +1187,59 @@ export const supportApi = {
     }
 }
 
+// Finance API
+export const financeApi = {
+    getEarningsSummary: async () => {
+        const response = await api.get("/api/finance/earnings")
+        return response.data
+    },
+    getMyPayments: async (page = 0, size = 10) => {
+        const response = await api.get("/api/finance/my-payments", { params: { page, size } })
+        return response.data
+    },
+    getMySpendingSummary: async () => {
+        const response = await api.get("/api/finance/my-spending-summary")
+        return response.data
+    },
+    getHistory: async (page = 0, size = 10) => {
+        const response = await api.get("/api/finance/history", { params: { page, size } })
+        return response.data
+    },
+
+    // Admin
+    getAllPayments: async (page = 0, size = 10) => {
+        const response = await api.get("/api/finance/admin/payments", { params: { page, size } })
+        return response.data
+    },
+    getAllEarnings: async (page = 0, size = 10) => {
+        const response = await api.get("/api/finance/admin/earnings", { params: { page, size } })
+        return response.data
+    },
+    getAllPayoutRequests: async (status: string | null = null, page = 0, size = 10) => {
+        const response = await api.get("/api/finance/admin/payout-requests", { params: { status, page, size } })
+        return response.data
+    },
+    processPayoutRequest: async (id: number, status: string, notes?: string) => {
+        const response = await api.post(`/api/finance/admin/payout-requests/${id}/process`, null, { params: { status, notes } })
+        return response.data
+    },
+
+    getPayoutMethods: async () => {
+        const response = await api.get("/api/finance/payout-methods")
+        return response.data
+    },
+    addPayoutMethod: async (data: any) => {
+        const response = await api.post("/api/finance/payout-methods", data)
+        return response.data
+    },
+    deletePayoutMethod: async (id: number) => {
+        const response = await api.delete(`/api/finance/payout-methods/${id}`)
+        return response.data
+    },
+    requestPayout: async () => {
+        const response = await api.post("/api/finance/payout-requests")
+        return response.data
+    }
+}
+
 export default api

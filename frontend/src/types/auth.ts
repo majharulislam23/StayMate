@@ -729,3 +729,65 @@ export interface ReviewResponse {
     comment: string
     createdAt: string
 }
+
+export interface EarningsSummaryResponse {
+    totalEarnings: number
+    pendingEarnings: number
+    availableBalance: number
+    paidOutEarnings: number
+}
+
+export interface PayoutMethodDto {
+    id: number
+    bankName: string
+    accountNumber: string
+    accountHolderName: string
+    routingNumber: string
+    currency: string
+    isDefault: boolean
+}
+
+export interface PayoutMethodRequest {
+    bankName: string
+    accountNumber: string
+    accountHolderName: string
+    routingNumber?: string
+    currency: string
+}
+
+export interface EarningDto {
+    id: number
+    bookingId: number
+    propertyTitle: string
+    amount: number
+    commission: number
+    netAmount: number
+    status: "PENDING" | "AVAILABLE" | "REQUESTED" | "PAID"
+    date: string
+}
+
+export interface PaymentDto {
+    id: number
+    bookingId: number
+    propertyTitle: string
+    amount: number
+    status: string
+    date: string
+    paymentMethod: string
+}
+
+export interface SpendingSummaryResponse {
+    totalSpent: number
+}
+
+export interface PayoutRequest {
+    id: number
+    user: AuthUser
+    payoutMethod: PayoutMethodDto
+    amount: number
+    status: string
+    adminNote?: string
+    requestDate?: string
+    processedAt?: string
+    createdAt: string
+}
