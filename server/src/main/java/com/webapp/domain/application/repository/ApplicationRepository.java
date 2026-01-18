@@ -1,23 +1,28 @@
 package com.webapp.domain.application.repository;
 
-import org.springframework.data.jpa.repository.*;
-import org.springframework.data.repository.query.*;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
 import com.webapp.domain.application.entity.Application;
 import com.webapp.domain.application.enums.ApplicationStatus;
 import com.webapp.domain.user.entity.User;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
 
+    @EntityGraph(attributePaths = { "receiver", "property" })
     Page<Application> findBySender(User sender, Pageable pageable);
 
+    @EntityGraph(attributePaths = { "sender", "property" })
     Page<Application> findByReceiver(User receiver, Pageable pageable);
 
     Page<Application> findBySenderAndStatus(User sender, ApplicationStatus status, Pageable pageable);
@@ -28,11 +33,11 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     @Query("SELECT COUNT(a) FROM Application a WHERE a.sender.id = :senderId AND a.status = :status")
     long countBySenderIdAndStatus(@Param("senderId") Long senderId,
-                                  @Param("status") ApplicationStatus status);
+            @Param("status") ApplicationStatus status);
 
     @Query("SELECT COUNT(a) FROM Application a WHERE a.receiver.id = :receiverId AND a.status = :status")
     long countByReceiverIdAndStatus(@Param("receiverId") Long receiverId,
-                                    @Param("status") ApplicationStatus status);
+            @Param("status") ApplicationStatus status);
 
     @Modifying
     @Query("DELETE FROM Application a WHERE a.sender.id = :userId OR a.receiver.id = :userId")
