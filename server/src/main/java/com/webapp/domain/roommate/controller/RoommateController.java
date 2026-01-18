@@ -60,6 +60,10 @@ public class RoommateController {
   @GetMapping("/matches")
   public ResponseEntity<List<RoommatePostDto>> getMatches(
       @AuthenticationPrincipal UserPrincipal userPrincipal) {
+    if (userPrincipal == null) {
+      // Return empty list for unauthenticated users
+      return ResponseEntity.ok(java.util.Collections.emptyList());
+    }
     return ResponseEntity.ok(roommateService.getMatches(userPrincipal.getId()));
   }
 

@@ -1,6 +1,26 @@
 package com.webapp.domain.messaging.service;
 
-import com.webapp.domain.messaging.dto.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.webapp.auth.exception.BadRequestException;
+import com.webapp.auth.exception.ResourceNotFoundException;
+import com.webapp.domain.messaging.dto.ConversationListResponse;
+import com.webapp.domain.messaging.dto.ConversationResponse;
+import com.webapp.domain.messaging.dto.CreateConversationRequest;
+import com.webapp.domain.messaging.dto.MarkAsReadRequest;
+import com.webapp.domain.messaging.dto.MessageListResponse;
+import com.webapp.domain.messaging.dto.MessageResponse;
+import com.webapp.domain.messaging.dto.SendMessageRequest;
+import com.webapp.domain.messaging.dto.UnreadCountResponse;
 import com.webapp.domain.messaging.entity.Conversation;
 import com.webapp.domain.messaging.entity.Message;
 import com.webapp.domain.messaging.enums.MessageType;
@@ -11,20 +31,9 @@ import com.webapp.domain.notification.enums.NotificationType;
 import com.webapp.domain.notification.repository.NotificationRepository;
 import com.webapp.domain.user.entity.User;
 import com.webapp.domain.user.repository.UserRepository;
-import com.webapp.auth.exception.BadRequestException;
-import com.webapp.auth.exception.ResourceNotFoundException;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +45,7 @@ public class MessageServiceImpl implements MessageService {
         private final UserRepository userRepository;
         private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
         private final NotificationRepository notificationRepository;
+        private final PresenceService presenceService;
 
         @Transactional(readOnly = true)
         public ConversationListResponse getConversations(
@@ -477,7 +487,7 @@ public class MessageServiceImpl implements MessageService {
                                                                 : otherParticipant.getEmail())
                                 .otherParticipantProfilePicture(
                                                 otherParticipant.getProfilePictureUrl())
-                                .otherParticipantOnline(false) // Can be enhanced with real-time presence
+                                .otherParticipantOnline(presenceService.isUserOnline(otherParticipant.getId()))
                                 .subject(conversation.getSubject())
                                 .propertyId(conversation.getPropertyId())
                                 .propertyTitle(conversation.getPropertyTitle())

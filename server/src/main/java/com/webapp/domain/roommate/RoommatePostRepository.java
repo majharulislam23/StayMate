@@ -14,7 +14,7 @@ public interface RoommatePostRepository extends JpaRepository<RoommatePost, Long
 
         long countByStatus(RoommatePostStatus status);
 
-        @Query("SELECT r FROM RoommatePost r WHERE " +
+        @Query("SELECT r FROM RoommatePost r JOIN FETCH r.user WHERE " +
                         "(r.status = com.webapp.domain.roommate.RoommatePostStatus.APPROVED OR r.status = com.webapp.domain.roommate.RoommatePostStatus.PENDING) AND "
                         +
                         "(:location IS NULL OR LOWER(r.location) LIKE LOWER(CONCAT('%', :location, '%'))) AND " +
@@ -26,4 +26,7 @@ public interface RoommatePostRepository extends JpaRepository<RoommatePost, Long
                         @Param("minBudget") Double minBudget,
                         @Param("maxBudget") Double maxBudget,
                         @Param("genderPreference") String genderPreference);
+
+        @Query("SELECT r FROM RoommatePost r JOIN FETCH r.user")
+        List<RoommatePost> findAllWithUser();
 }

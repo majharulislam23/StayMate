@@ -78,6 +78,8 @@ public class RoommateService {
     RoommatePost myPost = myPosts.isEmpty() ? null : myPosts.get(0);
 
     return posts.stream()
+        .filter(post -> currentUserId == null || !post.getUser().getId().equals(currentUserId)) // Fix: Exclude own
+                                                                                                // posts
         .map(post -> {
           RoommatePostDto dto = mapToDto(post);
           // Calculate score if we have a baseline and it's not our own post
@@ -153,7 +155,7 @@ public class RoommateService {
 
   @Transactional(readOnly = true)
   public List<RoommatePostDto> getAllPosts() {
-    return roommatePostRepository.findAll().stream()
+    return roommatePostRepository.findAllWithUser().stream()
         .map(this::mapToDto)
         .collect(Collectors.toList());
   }
@@ -163,8 +165,7 @@ public class RoommateService {
         .id(post.getId())
         .userId(post.getUser() != null ? post.getUser().getId() : null)
         .userName(post.getUser().getFirstName() + " " + post.getUser().getLastName())
-        .userAvatar(
-            "https://ui-avatars.com/api/?name=" + post.getUser().getFirstName() + "+" + post.getUser().getLastName())
+        .userAvatar(post.getUser().getProfilePictureUrl())
         .location(post.getLocation())
         .budget(post.getBudget())
         .moveInDate(post.getMoveInDate())
@@ -190,7 +191,7 @@ public class RoommateService {
     List<RoommatePost> myPosts = roommatePostRepository.findByUserId(userId);
 
     // 2. Get all other active posts
-    List<RoommatePost> allPosts = roommatePostRepository.findAll();
+    List<RoommatePost> allPosts = roommatePostRepository.findAllWithUser();
     log.info("Total posts in DB: {}", allPosts.size());
 
     if (myPosts.isEmpty()) {
