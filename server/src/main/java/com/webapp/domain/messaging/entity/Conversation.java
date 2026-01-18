@@ -1,19 +1,38 @@
 package com.webapp.domain.messaging.entity;
 
-import com.webapp.domain.user.entity.User;
-import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.webapp.domain.user.entity.User;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "conversations")
+@Table(name = "conversations", indexes = {
+        @Index(name = "idx_conv_participant_one", columnList = "participant_one_id"),
+        @Index(name = "idx_conv_participant_two", columnList = "participant_two_id"),
+        @Index(name = "idx_conv_last_message_at", columnList = "last_message_at"),
+        @Index(name = "idx_conv_property", columnList = "property_id")
+})
 @Data
 @Builder
 @NoArgsConstructor
@@ -88,7 +107,8 @@ public class Conversation {
 
     //
     public boolean isParticipant(Long userId) {
-        return (participantOne != null && participantOne.getId().equals(userId)) || (participantTwo != null && participantTwo.getId().equals(userId));
+        return (participantOne != null && participantOne.getId().equals(userId))
+                || (participantTwo != null && participantTwo.getId().equals(userId));
     }
 
     public User getOtherParticipant(Long userId) {

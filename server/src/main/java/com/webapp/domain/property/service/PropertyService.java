@@ -30,7 +30,7 @@ public class PropertyService {
 
     @Transactional
     public PropertyResponse createProperty(PropertyRequest request,
-                                           List<MultipartFile> files, Long ownerId) {
+            List<MultipartFile> files, Long ownerId) {
         // Enforce 100% Verification
         verificationService.validateUserVerification(ownerId);
 
@@ -102,7 +102,7 @@ public class PropertyService {
      */
     @Transactional(readOnly = true)
     public List<PropertyResponse> searchProperties(String query, Double minPrice, Double maxPrice, Integer minBeds,
-                                                   Integer minBaths, String propertyType) {
+            Integer minBaths, String propertyType) {
         java.math.BigDecimal decimalMinPrice = minPrice != null ? java.math.BigDecimal.valueOf(minPrice) : null;
         java.math.BigDecimal decimalMaxPrice = maxPrice != null ? java.math.BigDecimal.valueOf(maxPrice) : null;
 
@@ -159,9 +159,14 @@ public class PropertyService {
 
     @Transactional(readOnly = true)
     public PropertyResponse getPropertyById(Long id) {
-        return propertyRepository.findById(id)
-                .map(this::mapToResponse)
+        Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Property not found with id: " + id));
+
+        if (property.getStatus() != PropertyStatus.APPROVED && property.getStatus() != PropertyStatus.ACTIVE) {
+            throw new RuntimeException("Property not available");
+        }
+
+        return mapToResponse(property);
     }
 
     @Transactional
@@ -194,7 +199,7 @@ public class PropertyService {
     }
 
     public PropertyResponse updateProperty(Long id, PropertyRequest request,
-                                           List<MultipartFile> files, Long requesterId) {
+            List<MultipartFile> files, Long requesterId) {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Property not found with id: " + id));
 

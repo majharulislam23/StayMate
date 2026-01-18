@@ -24,7 +24,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "messages")
+@Table(name = "messages", indexes = {
+        @jakarta.persistence.Index(name = "idx_message_conversation", columnList = "conversation_id"),
+        @jakarta.persistence.Index(name = "idx_message_sender", columnList = "sender_id"),
+        @jakarta.persistence.Index(name = "idx_message_recipient", columnList = "recipient_id"),
+        @jakarta.persistence.Index(name = "idx_message_created_at", columnList = "created_at"),
+        @jakarta.persistence.Index(name = "idx_message_is_read", columnList = "is_read")
+})
 @Data
 @Builder
 @NoArgsConstructor
