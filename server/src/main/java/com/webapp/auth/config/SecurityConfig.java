@@ -3,10 +3,12 @@ package com.webapp.auth.config;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -18,6 +20,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -30,19 +33,45 @@ import com.webapp.auth.security.oauth2.HttpCookieOAuth2AuthorizationRequestRepos
 import com.webapp.auth.security.oauth2.OAuth2AuthenticationFailureHandler;
 import com.webapp.auth.security.oauth2.OAuth2AuthenticationSuccessHandler;
 
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Security Configuration for StayMate.
+ *
+ * Supports two modes:
+ * 1. WITH OAuth2 (default): Full Google OAuth2 + JWT authentication
+ * 2. WITHOUT OAuth2: JWT-only authentication (when GOOGLE_CLIENT_ID is
+ * "disabled" or missing)
+ *
+ * The configuration automatically detects which mode to use based on whether
+ * ClientRegistrationRepository is available.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
+@Slf4j
 public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
         private final UserDetailsService userDetailsService;
-        private final CustomOAuth2UserService customOAuth2UserService;
-        private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
-        private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
         private final PasswordEncoder passwordEncoder;
-        private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
         private final RateLimitFilter rateLimitFilter;
+
+        // OAuth2 components - optional, may not be present if OAuth2 is disabled
+        @Autowired(required = false)
+        private CustomOAuth2UserService customOAuth2UserService;
+
+        @Autowired(required = false)
+        private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+
+        @Autowired(required = false)
+        private OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
+
+        @Autowired(required = false)
+        private HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
+
+        @Autowired(required = false)
+        private ClientRegistrationRepository clientRegistrationRepository;
 
         @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:8080}")
         private String allowedOriginsConfig;
@@ -50,30 +79,23 @@ public class SecurityConfig {
         public SecurityConfig(
                         @Lazy JwtAuthenticationFilter jwtAuthenticationFilter,
                         @Lazy UserDetailsService userDetailsService,
-                        CustomOAuth2UserService customOAuth2UserService,
-                        OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler,
-                        OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler,
                         PasswordEncoder passwordEncoder,
-                        HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository,
                         RateLimitFilter rateLimitFilter) {
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
                 this.userDetailsService = userDetailsService;
-                this.customOAuth2UserService = customOAuth2UserService;
-                this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
-                this.oAuth2AuthenticationFailureHandler = oAuth2AuthenticationFailureHandler;
                 this.passwordEncoder = passwordEncoder;
-                this.httpCookieOAuth2AuthorizationRequestRepository = httpCookieOAuth2AuthorizationRequestRepository;
                 this.rateLimitFilter = rateLimitFilter;
         }
 
         @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity http)
-                        throws Exception {
+        @Primary
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                log.info("Configuring Security Filter Chain...");
+
+                // Base configuration
                 http
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                // Use STATELESS for JWT-based auth, but OAuth2 will use cookies for
-                                // authorization request
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
@@ -92,24 +114,20 @@ public class SecurityConfig {
                                                                 "/h2-console/**",
                                                                 "/error",
                                                                 "/api/uploads/**",
-                                                                // Hidden admin endpoints (protected by secret key, not
-                                                                // JWT)
                                                                 "/api/v1/internal/sudo/**",
-                                                                // Public Browse Endpoints (GET only, controller handles
-                                                                // auth for POST)
                                                                 "/api/properties/**",
                                                                 "/api/roommates/**")
                                                 .permitAll()
                                                 // Admin only endpoints
                                                 .requestMatchers("/api/admin/**")
                                                 .hasRole("ADMIN")
-                                                // House owner endpoints (house owners and admins can access)
+                                                // House owner endpoints
                                                 .requestMatchers("/api/house-owner/**")
                                                 .hasAnyRole("HOUSE_OWNER", "ADMIN")
-                                                // User endpoints (all authenticated users)
+                                                // User endpoints
                                                 .requestMatchers("/api/users/**")
                                                 .authenticated()
-                                                // Auth endpoints that require authentication
+                                                // Auth endpoints requiring authentication
                                                 .requestMatchers(
                                                                 "/api/auth/me",
                                                                 "/api/auth/logout",
@@ -118,35 +136,55 @@ public class SecurityConfig {
                                                 .authenticated()
                                                 // All other endpoints require authentication
                                                 .anyRequest()
-                                                .authenticated())
-                                .oauth2Login(oauth2 -> oauth2
-                                                // Configure authorization endpoint (where the OAuth2 flow starts)
-                                                // Default: /oauth2/authorization/{registrationId}
-                                                .authorizationEndpoint(authorization -> authorization
-                                                                .baseUri("/oauth2/authorization")
-                                                                .authorizationRequestRepository(
-                                                                                httpCookieOAuth2AuthorizationRequestRepository))
-                                                // Configure redirect endpoint (where OAuth2 provider redirects back)
-                                                // Default: /login/oauth2/code/{registrationId}
-                                                .redirectionEndpoint(redirection -> redirection
-                                                                .baseUri("/login/oauth2/code/*"))
-                                                // Configure user info endpoint
-                                                .userInfoEndpoint(userInfo -> userInfo
-                                                                .userService(customOAuth2UserService))
-                                                // Success and failure handlers
-                                                .successHandler(oAuth2AuthenticationSuccessHandler)
-                                                .failureHandler(oAuth2AuthenticationFailureHandler))
+                                                .authenticated());
+
+                // Conditionally add OAuth2 login if ClientRegistrationRepository is available
+                if (clientRegistrationRepository != null && isOAuth2Configured()) {
+                        log.info("OAuth2 is configured - enabling Google login");
+                        http.oauth2Login(oauth2 -> oauth2
+                                        .authorizationEndpoint(authorization -> authorization
+                                                        .baseUri("/oauth2/authorization")
+                                                        .authorizationRequestRepository(
+                                                                        httpCookieOAuth2AuthorizationRequestRepository))
+                                        .redirectionEndpoint(redirection -> redirection
+                                                        .baseUri("/login/oauth2/code/*"))
+                                        .userInfoEndpoint(userInfo -> userInfo
+                                                        .userService(customOAuth2UserService))
+                                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                                        .failureHandler(oAuth2AuthenticationFailureHandler));
+                } else {
+                        log.warn("OAuth2 is NOT configured - Google login disabled. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable.");
+                }
+
+                // Add filters
+                http
                                 .authenticationProvider(authenticationProvider())
-                                .addFilterBefore(
-                                                rateLimitFilter,
-                                                UsernamePasswordAuthenticationFilter.class)
-                                .addFilterBefore(
-                                                jwtAuthenticationFilter,
-                                                UsernamePasswordAuthenticationFilter.class)
-                                // Allow H2 console frames
+                                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
 
                 return http.build();
+        }
+
+        /**
+         * Check if OAuth2 is actually configured with real credentials.
+         * Returns false if the client-id is "disabled" or empty.
+         */
+        private boolean isOAuth2Configured() {
+                if (clientRegistrationRepository == null) {
+                        return false;
+                }
+                try {
+                        var registration = clientRegistrationRepository.findByRegistrationId("google");
+                        if (registration == null) {
+                                return false;
+                        }
+                        String clientId = registration.getClientId();
+                        return clientId != null && !clientId.isEmpty() && !clientId.equals("disabled");
+                } catch (Exception e) {
+                        log.debug("OAuth2 not configured: {}", e.getMessage());
+                        return false;
+                }
         }
 
         @Bean
