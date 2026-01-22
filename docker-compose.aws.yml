@@ -174,7 +174,7 @@ services:
       - staymate-net
     volumes:
       - uploads:/app/uploads
-      - ./logs:/app/logs
+      - logs:/app/logs # Named volume - avoids permission issues
     deploy:
       resources:
         limits:
@@ -241,3 +241,5 @@ volumes:
     name: staymate_uploads
   minio_data:
     name: staymate_minio_data
+  logs:
+    name: staymate_logs
