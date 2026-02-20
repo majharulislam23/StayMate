@@ -22,14 +22,22 @@ public class MinioConfig {
   @Value("${minio.secret-key}")
   private String secretKey;
 
+  @Value("${minio.region:}")
+  private String region;
+
   @Bean
   public MinioClient minioClient() {
     log.info("Initializing MinIO client with endpoint: {}", minioUrl);
     try {
-      MinioClient client = MinioClient.builder()
+      io.minio.MinioClient.Builder builder = MinioClient.builder()
           .endpoint(minioUrl)
-          .credentials(accessKey, secretKey)
-          .build();
+          .credentials(accessKey, secretKey);
+
+      if (region != null && !region.trim().isEmpty()) {
+        builder.region(region);
+      }
+
+      MinioClient client = builder.build();
       log.info("MinIO client initialized successfully");
       return client;
     } catch (Exception e) {
