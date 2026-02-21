@@ -36,12 +36,14 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
         List<Object[]> findTopLocations(Pageable pageable);
 
         @org.springframework.data.jpa.repository.Query("SELECT p FROM Property p LEFT JOIN FETCH p.owner WHERE " +
-                        "(:location IS NULL OR LOWER(p.location) LIKE LOWER(CONCAT('%', :location, '%'))) AND " +
+                        "(cast(:location as string) IS NULL OR LOWER(p.location) LIKE LOWER(CONCAT('%', cast(:location as string), '%'))) AND "
+                        +
                         "(:minPrice IS NULL OR p.priceAmount >= :minPrice) AND " +
                         "(:maxPrice IS NULL OR p.priceAmount <= :maxPrice) AND " +
                         "(:minBeds IS NULL OR p.beds >= :minBeds) AND " +
                         "(:minBaths IS NULL OR p.baths >= :minBaths) AND " +
-                        "(:propertyType IS NULL OR CAST(p.propertyType as string) = :propertyType) AND " +
+                        "(cast(:propertyType as string) IS NULL OR CAST(p.propertyType as string) = cast(:propertyType as string)) AND "
+                        +
                         "(:amenityCount = 0 OR (SELECT COUNT(DISTINCT a.id) FROM p.amenities a WHERE a.id IN :amenityIds) = :amenityCount) AND "
                         +
                         "p.status IN :statuses")

@@ -103,7 +103,7 @@ public class SecurityConfig {
                                                                 "/ws/**",
                                                                 "/h2-console/**",
                                                                 "/error",
-                                                                "/api/uploads/**",
+                                                                "/uploads/**",
                                                                 "/api/v1/internal/sudo/**",
                                                                 "/api/properties/search",
                                                                 "/api/properties/recommended",
@@ -145,6 +145,15 @@ public class SecurityConfig {
                                                                 .userService(customOAuth2UserService))
                                                 .successHandler(oAuth2AuthenticationSuccessHandler)
                                                 .failureHandler(oAuth2AuthenticationFailureHandler))
+                                .exceptionHandling(exceptions -> exceptions
+                                                .defaultAuthenticationEntryPointFor(
+                                                                (request, response, authException) -> {
+                                                                        response.sendError(
+                                                                                        jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED,
+                                                                                        "Unauthorized");
+                                                                },
+                                                                new org.springframework.security.web.util.matcher.AntPathRequestMatcher(
+                                                                                "/api/**")))
                                 .authenticationProvider(authenticationProvider())
                                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
