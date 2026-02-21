@@ -16,7 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@MockBean(io.minio.MinioClient.class)
+@MockBean(software.amazon.awssdk.services.s3.S3Client.class)
 @TestPropertySource(properties = {
     "minio.bucket-name=test-bucket",
     "minio.url=http://localhost:9005",
