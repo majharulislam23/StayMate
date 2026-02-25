@@ -1,0 +1,19 @@
+# =============================================================
+# Grafana Auto-Provisioned Datasource
+# =============================================================
+# When Grafana starts, it reads this file and automatically
+# configures Prometheus as the default data source — no manual
+# setup required.
+# =============================================================
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090    # Docker Compose service name
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "15s"          # Match Prometheus scrape_interval
