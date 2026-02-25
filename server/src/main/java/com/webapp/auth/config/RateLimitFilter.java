@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -32,7 +33,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final Map<String, RateLimitInfo> rateLimitCache = new ConcurrentHashMap<>();
 
     // Cleanup old entries every 5 minutes
-    private long lastCleanup = System.currentTimeMillis();
+    private final AtomicLong lastCleanup = new AtomicLong(System.currentTimeMillis());
     private static final long CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
     /**
@@ -132,11 +133,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private void cleanupIfNeeded() {
         long now = System.currentTimeMillis();
-        if (now - lastCleanup > CLEANUP_INTERVAL_MS) {
-            lastCleanup = now;
-            long expiryThreshold = now - TimeUnit.MINUTES.toMillis(2);
-            rateLimitCache.entrySet().removeIf(
-                    entry -> entry.getValue().getLastAccessTime() < expiryThreshold);
+        long last = lastCleanup.get();
+        if (now - last > CLEANUP_INTERVAL_MS) {
+            // CAS to prevent multiple threads cleaning concurrently
+            if (lastCleanup.compareAndSet(last, now)) {
+                long expiryThreshold = now - TimeUnit.MINUTES.toMillis(2);
+                rateLimitCache.entrySet().removeIf(
+                        entry -> entry.getValue().getLastAccessTime() < expiryThreshold);
+            }
         }
     }
 
@@ -174,21 +178,21 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return false;
         }
 
-        public int getRemaining() {
+        public synchronized int getRemaining() {
             return Math.max(0, remainingRequests);
         }
 
-        public long getResetTime() {
+        public synchronized long getResetTime() {
             return windowStart + WINDOW_MS;
         }
 
-        public long getSecondsUntilReset() {
+        public synchronized long getSecondsUntilReset() {
             long now = System.currentTimeMillis();
             long resetTime = windowStart + WINDOW_MS;
             return Math.max(0, (resetTime - now) / 1000);
         }
 
-        public long getLastAccessTime() {
+        public synchronized long getLastAccessTime() {
             return lastAccessTime;
         }
     }

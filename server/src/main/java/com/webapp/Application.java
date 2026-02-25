@@ -14,7 +14,8 @@ import org.springframework.scheduling.annotation.*;
         "com.webapp.auth",
         "com.webapp.domain",
         "com.webapp.service",
-        "com.webapp.config"
+        "com.webapp.config",
+        "com.webapp.scheduler"
 })
 @EnableScheduling
 @EnableAsync
