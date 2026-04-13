@@ -1,0 +1,36 @@
+# =============================================================
+# Prometheus Configuration for StayMate
+# =============================================================
+# Prometheus is a time-series database that "scrapes" (pulls)
+# metrics from HTTP endpoints at regular intervals.
+# =============================================================
+
+global:
+  # How often Prometheus pulls metrics from targets
+  scrape_interval: 15s
+
+  # How often Prometheus evaluates alerting rules
+  evaluation_interval: 15s
+
+# =============================================================
+# Scrape Targets
+# =============================================================
+scrape_configs:
+
+  # ── Prometheus Self-Monitoring ──
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # ── StayMate Spring Boot Backend ──
+  # Prometheus will GET http://<target>/actuator/prometheus every 15s.
+  # The response is in Prometheus exposition format (text), containing
+  # all JVM, HTTP, and custom metrics exported by Micrometer.
+  - job_name: "staymate-backend"
+    metrics_path: "/actuator/prometheus"
+    scrape_interval: 10s          # Scrape the app a bit more frequently
+    static_configs:
+      - targets: ["host.docker.internal:8080"]
+        labels:
+          application: "staymate"
+          environment: "development"

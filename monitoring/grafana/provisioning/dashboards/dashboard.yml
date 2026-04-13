@@ -1,0 +1,19 @@
+# =============================================================
+# Grafana Dashboard Provider
+# =============================================================
+# Tells Grafana where to find pre-built dashboard JSON files
+# and loads them automatically on startup.
+# =============================================================
+
+apiVersion: 1
+
+providers:
+  - name: "StayMate Dashboards"
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
